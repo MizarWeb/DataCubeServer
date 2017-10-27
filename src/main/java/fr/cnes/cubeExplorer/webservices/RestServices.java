@@ -27,7 +27,7 @@ import fr.cnes.cubeExplorer.resources.GeoJsonResponse;
 import fr.cnes.cubeExplorer.resources.fits.FitsCube;
 
 @RestController
-@RequestMapping("/rest")
+@RequestMapping("/cubeExplorer/rest")
 //@Path("/rest")
 //@Consumes(MediaType.APPLICATION_JSON)
 public class RestServices {
