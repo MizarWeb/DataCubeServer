@@ -1,0 +1,9 @@
+*.~ar
+*.zip
+*.log
+.classpath
+.project
+.settings/
+files_test/
+target/
+ 
