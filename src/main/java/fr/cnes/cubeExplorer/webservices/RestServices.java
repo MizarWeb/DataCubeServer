@@ -4,11 +4,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.util.Locale;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
@@ -18,6 +14,8 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import app.CubeExplorer;
 import common.enums.CubeType;
@@ -28,8 +26,9 @@ import common.exceptions.SimpleException;
 import fr.cnes.cubeExplorer.resources.GeoJsonResponse;
 import fr.cnes.cubeExplorer.resources.fits.FitsCube;
 
-@Path("/rest")
-@Consumes(MediaType.APPLICATION_JSON)
+@RestController
+//@Path("/rest")
+//@Consumes(MediaType.APPLICATION_JSON)
 public class RestServices {
 
 	// Initialise un logger (voir conf/log4j2.xml).
@@ -60,8 +59,7 @@ public class RestServices {
 		Messages.load("conf/messages", lang);
 	}
 
-	@GET
-	@Path("/fits/listFiles")
+	@RequestMapping("/fits/listFiles")
 	public Response getListFiles(@QueryParam("level") String logLevel) {
 
 		LOGREST.info("Call getListFiles()");
@@ -98,8 +96,7 @@ public class RestServices {
 		return Response.status(status).entity(response.toString().getBytes()).build();
 	}
 
-	@GET
-	@Path("/fits/header")
+	@RequestMapping("/fits/header")
 	public Response getHeader(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
 			@QueryParam("level") String logLevel) {
 
@@ -174,8 +171,7 @@ public class RestServices {
 	 * @return A slide
 	 * @throws SimpleException
 	 */
-	@GET
-	@Path("/fits/slide")
+	@RequestMapping("/fits/slide")
 	public Response getFitsSlide(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
 			@QueryParam("naxis3") int naxis3, @QueryParam("level") String logLevel) {
 
@@ -222,8 +218,7 @@ public class RestServices {
 		return Response.status(status).entity(response.toString().getBytes()).build();
 	}
 
-	@GET
-	@Path("/fits/spectrum")
+	@RequestMapping("/fits/spectrum")
 	public Response getFitsSpectrum(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
 			@QueryParam("naxis1") int naxis1, @QueryParam("naxis2") int naxis2, @QueryParam("level") String logLevel) {
 

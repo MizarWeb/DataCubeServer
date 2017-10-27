@@ -17,7 +17,6 @@ import app.CubeExplorer;
 import common.enums.CubeType;
 import common.exceptions.CubeExplorerException;
 import fr.cnes.cubeExplorer.resources.AbstractDataCube;
-import fr.cnes.cubeExplorer.resources.fits.FitsHeader;
 import nom.tam.fits.Fits;
 import nom.tam.fits.FitsException;
 import nom.tam.fits.FitsFactory;

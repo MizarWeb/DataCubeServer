@@ -5,6 +5,7 @@
 package fr.cnes.cubeExplorer.resources;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
@@ -25,12 +26,17 @@ public class GeoJsonResponse {
         
         geoJsonCoordinates.put(coordx);
         geoJsonCoordinates.put(coordy);
-        geoJsonGeometry.put("type", "Point");
-        geoJsonGeometry.put("coordinates", geoJsonCoordinates);
-        geoJsonFeature.put("type", "Feature");
-        geoJsonFeature.put("geometry", geoJsonGeometry);
-        geoJsonFeature.put("properties", properties);
-        geoJson.put("feature", geoJsonFeature);
+        try {
+			geoJsonGeometry.put("type", "Point");
+			geoJsonGeometry.put("coordinates", geoJsonCoordinates);
+			geoJsonFeature.put("type", "Feature");
+			geoJsonFeature.put("geometry", geoJsonGeometry);
+			geoJsonFeature.put("properties", properties);
+			geoJson.put("feature", geoJsonFeature);
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	/**
