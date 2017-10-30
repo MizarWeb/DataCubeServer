@@ -1,12 +1,10 @@
-package fr.cnes.cubeExplorer.webservices;
+package app;
 
 import java.io.File;
 import java.io.FilenameFilter;
 import java.util.Locale;
 
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -14,12 +12,14 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import app.CubeExplorer;
 import common.enums.CubeType;
-import common.enums.Text2Html;
 import common.exceptions.CubeExplorerException;
 import common.exceptions.Messages;
 import common.exceptions.SimpleException;
@@ -60,13 +60,13 @@ public class RestServices {
 		Messages.load("conf/messages", lang);
 	}
 
-	@RequestMapping("/fits/listFiles")
-	public Response getListFiles(@QueryParam("level") String logLevel) {
+	@RequestMapping(value = "/fits/listFiles", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<String> getListFiles(@QueryParam("level") String logLevel) {
 
 		LOGREST.info("Call getListFiles()");
 
 		JSONObject response = new JSONObject();
-		Status status = Status.OK;
+		HttpStatus status = HttpStatus.OK;
 
 		try {
 			initService(logLevel);
@@ -87,24 +87,24 @@ public class RestServices {
 			// array of files and directory
 			response.put("response", dir.list(filter));
 		} catch (Exception e) {
-			status = Status.INTERNAL_SERVER_ERROR;
+			status = HttpStatus.INTERNAL_SERVER_ERROR;
 			String message = e.getMessage();
 			response.put("message", message);
 			// response.put("messageHtml", Text2Html.replace(message));
 		}
 
-		response.put("status", status);
-		return Response.status(status).entity(response.toString().getBytes()).build();
+		response.put("status", status.name());
+		return new ResponseEntity<String>(response.toString(), status);
 	}
 
-	@RequestMapping("/fits/header")
-	public Response getHeader(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
+	@RequestMapping(value = "/fits/header", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<String> getHeader(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
 			@QueryParam("level") String logLevel) {
 
 		LOGREST.info("Call getHeader({}, {})", entry, metadata);
 
 		JSONObject response = new JSONObject();
-		Status status = Status.OK;
+		HttpStatus status = HttpStatus.OK;
 
 		GeoJsonResponse geoJsonSlide = null;
 		FitsCube fc = null;
@@ -114,7 +114,7 @@ public class RestServices {
 
 			if (entry == null) {
 				SimpleException se = new SimpleException("exception.parameterMissing", "entry");
-				throw new CubeExplorerException(se, "exception.rest.slide.syntax");
+				throw new CubeExplorerException(se, "exception.rest.header.syntax");
 			}
 
 			// Lecture du fichier Fits
@@ -133,22 +133,22 @@ public class RestServices {
 
 			fc.close();
 		} catch (SimpleException se) {
-			status = Status.BAD_REQUEST;
+			status = HttpStatus.BAD_REQUEST;
 			String message = se.getMessages().toString();
 			response.put("message", message);
-			response.put("messageHtml", Text2Html.replace(message));
+			// response.put("messageHtml", Text2Html.replace(message));
 		} catch (Exception e) {
-			status = Status.INTERNAL_SERVER_ERROR;
+			status = HttpStatus.INTERNAL_SERVER_ERROR;
 			String message = e.getMessage();
 			response.put("message", message);
-			response.put("messageHtml", Text2Html.replace(message));
+			// response.put("messageHtml", Text2Html.replace(message));
 		} finally {
 			if (fc != null)
 				fc.close();
 		}
 
-		response.put("status", status);
-		return Response.status(status).entity(response.toString().getBytes()).build();
+		response.put("status", status.name());
+		return new ResponseEntity<String>(response.toString(), status);
 	}
 
 	// @GET
@@ -172,14 +172,14 @@ public class RestServices {
 	 * @return A slide
 	 * @throws SimpleException
 	 */
-	@RequestMapping("/fits/slide")
-	public Response getFitsSlide(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
+	@RequestMapping(value = "/fits/slide", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<String> getFitsSlide(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
 			@QueryParam("naxis3") int naxis3, @QueryParam("level") String logLevel) {
 
 		LOGREST.info("Call getFitsSlide({}, {}, {})", entry, metadata, naxis3);
 
 		JSONObject response = new JSONObject();
-		Status status = Status.OK;
+		HttpStatus status = HttpStatus.OK;
 
 		GeoJsonResponse geoJsonSlide = null;
 		FitsCube fc = null;
@@ -201,33 +201,33 @@ public class RestServices {
 
 			fc.close();
 		} catch (SimpleException se) {
-			status = Status.BAD_REQUEST;
+			status = HttpStatus.BAD_REQUEST;
 			String message = se.getMessages().toString();
 			response.put("message", message);
-			response.put("messageHtml", Text2Html.replace(message));
+			// response.put("messageHtml", Text2Html.replace(message));
 		} catch (Exception e) {
-			status = Status.INTERNAL_SERVER_ERROR;
+			status = HttpStatus.INTERNAL_SERVER_ERROR;
 			String message = e.getMessage();
 			response.put("message", message);
-			response.put("messageHtml", Text2Html.replace(message));
+			// response.put("messageHtml", Text2Html.replace(message));
 		} finally {
 			if (fc != null)
 				fc.close();
 		}
 
-		response.put("status", status);
-		return Response.status(status).entity(response.toString().getBytes()).build();
+		response.put("status", status.name());
+		return new ResponseEntity<String>(response.toString(), status);
 	}
 
-	@RequestMapping("/fits/spectrum")
-	public Response getFitsSpectrum(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
+	@RequestMapping(value = "/fits/spectrum", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<String> getFitsSpectrum(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
 			@QueryParam("naxis1") int naxis1, @QueryParam("naxis2") int naxis2, @QueryParam("level") String logLevel) {
 
 		// Initialise un logger (voir conf/log4j2.xml).
 		LOGREST.info("Call getFitsSpectrum({}, {}, {}, {})", entry, metadata, naxis1, naxis2);
 
 		JSONObject response = new JSONObject();
-		Status status = Status.OK;
+		HttpStatus status = HttpStatus.OK;
 
 		GeoJsonResponse geoJsonSpectrum = null;
 		FitsCube fc = null;
@@ -249,22 +249,22 @@ public class RestServices {
 
 			fc.close();
 		} catch (SimpleException se) {
-			status = Status.BAD_REQUEST;
+			status = HttpStatus.BAD_REQUEST;
 			String message = se.getMessages().toString();
 			response.put("message", message);
-			response.put("messageHtml", Text2Html.replace(message));
+			// response.put("messageHtml", Text2Html.replace(message));
 		} catch (Exception e) {
-			status = Status.INTERNAL_SERVER_ERROR;
+			status = HttpStatus.INTERNAL_SERVER_ERROR;
 			String message = e.getMessage();
 			response.put("message", message);
-			response.put("messageHtml", Text2Html.replace(message));
+			// response.put("messageHtml", Text2Html.replace(message));
 		} finally {
 			if (fc != null)
 				fc.close();
 		}
 
-		response.put("status", status);
-		return Response.status(status).entity(response.toString().getBytes()).build();
+		response.put("status", status.name());
+		return new ResponseEntity<String>(response.toString(), status);
 	}
 
 }

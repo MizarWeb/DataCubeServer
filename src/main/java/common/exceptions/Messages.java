@@ -144,23 +144,25 @@ public abstract class Messages {
 
 		try {
 			// recherche dans les messages applicatifs
-			if (resource != null)
+			if (resource != null) {
 				message = Messages.resource.getString(ident);
-			else if (resourceDefault == null) {
+			} else if (resourceDefault != null) {
+				message = Messages.resourceDefault.getString(ident);
+			} else {
 				message = "(Resource default for messages file not available) ";
 				throw new MissingResourceException(message, "Messages", ident);
 			}
-			message = Messages.resourceDefault.getString(ident);
 		} catch (MissingResourceException mrei) {
 			// recherche dans les messages internes
 			try {
-				if (resourceInterne != null)
+				if (resourceInterne != null) {
 					message = Messages.resourceInterne.getString(ident);
-				else if (resourceInterneDefault == null) {
+				} else if (resourceInterneDefault != null) {
+					message = Messages.resourceInterneDefault.getString(ident);
+				} else {
 					message = "(Internal resource default for messages file not available) ";
 					throw new MissingResourceException(message, "Messages", ident);
 				}
-				message = Messages.resourceInterneDefault.getString(ident);
 
 			} catch (MissingResourceException e) {
 				// Si on ne trouve pas le message

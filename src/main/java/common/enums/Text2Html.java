@@ -48,9 +48,10 @@ public enum Text2Html {
 	 * @return A string to html compliant
 	 */
 	static public String replace(String source) {
-		String result = source;
+		if (source == null) return null;
+		String result = null;
 		for (Text2Html elt : Text2Html.values()) {
-			result = result.replaceAll(elt.sequence, elt.replace);
+			result = source.replaceAll(elt.sequence, elt.replace);
 		}
 		return result;
 	}
