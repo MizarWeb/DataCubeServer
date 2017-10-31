@@ -31,10 +31,9 @@ public abstract class Messages {
 	/**
 	 * Le gestionnaire des messages internes par défaut
 	 */
-	private static ResourceBundle resourceInterne = ResourceBundle.getBundle("common.exceptions.messagesException",
+	private static ResourceBundle resourceInterne = ResourceBundle.getBundle("conf/messagesException", Locale.ENGLISH);
+	private static ResourceBundle resourceInterneDefault = ResourceBundle.getBundle("conf/messagesException",
 			Locale.ENGLISH);
-	private static ResourceBundle resourceInterneDefault = ResourceBundle
-			.getBundle("common.exceptions.messagesException", Locale.ENGLISH);
 
 	/**
 	 * Constructeur privé

@@ -17,6 +17,9 @@ import app.CubeExplorer;
 import common.enums.CubeType;
 import common.exceptions.CubeExplorerException;
 import fr.cnes.cubeExplorer.resources.AbstractDataCube;
+import io.github.malapert.jwcs.AbstractJWcs;
+import io.github.malapert.jwcs.JWcsFits;
+import io.github.malapert.jwcs.proj.exception.JWcsException;
 import nom.tam.fits.Fits;
 import nom.tam.fits.FitsException;
 import nom.tam.fits.FitsFactory;
@@ -114,6 +117,10 @@ public class FitsCube extends AbstractDataCube {
 				throw new CubeExplorerException("exception.outOfBound", "naxis3", pNaxis3, 0, naxis3 - 1);
 			}
 
+			// AbstractJWcs wcs = new JWcsFits(fits, indexHdu);
+			AbstractJWcs wcs = new JWcsFits(((FitsHeader ) this.getHeader()).getFitsHeader(indexHdu));
+			wcs.doInit();
+			
 			// Copie des metadata demandées sans les commentaires
 			metadata = getHeader().selectMetadata(md, pattern);
 
@@ -132,8 +139,10 @@ public class FitsCube extends AbstractDataCube {
 					lineValues.put(value.isNaN() ? null : value);
 					if (radec) {
 						// TODO : Calcul des coordonnées
-						lineLon.put((double) idxNaxis1);
-						lineLat.put((double) idxNaxis2);
+						 // pour calculer la position (ra, dec) pour chaque pixel
+						double[] result = wcs.pix2wcs((double) idxNaxis1 + 1.0, (double) idxNaxis2 + 1.0);
+						lineLon.put(result[0]);
+						lineLat.put(result[1]);
 					}
 				}
 				if (radec) {
@@ -154,6 +163,8 @@ public class FitsCube extends AbstractDataCube {
 			throw new CubeExplorerException(fe);
 		} catch (IOException ioe) {
 			throw new CubeExplorerException(ioe);
+		} catch (JWcsException je) {
+			throw new CubeExplorerException(je);
 		}
 		return properties;
 	}

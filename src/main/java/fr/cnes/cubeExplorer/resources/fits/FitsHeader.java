@@ -6,6 +6,8 @@
 package fr.cnes.cubeExplorer.resources.fits;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -27,6 +29,7 @@ import nom.tam.util.Cursor;
 public class FitsHeader extends AbstractDataCubeHeader {
 
 	private FitsCube cube = null;
+	private List<Header> fitsHeaders = new ArrayList<Header>();
 
 	/**
 	 * construct a header fits JSONArray from fits file
@@ -47,6 +50,20 @@ public class FitsHeader extends AbstractDataCubeHeader {
 
 		// Read fits file
 		readFitsHeaders(cube.getFits());
+	}
+
+	/**
+	 * @return the fitsHeaders
+	 */
+	public List<Header> getFitsHeaders() {
+		return fitsHeaders;
+	}
+
+	/**
+	 * @return the Header
+	 */
+	public Header getFitsHeader(int idxHdu) {
+		return fitsHeaders.get(idxHdu);
 	}
 
 	private String StringInContinue(String val) {
@@ -131,6 +148,7 @@ public class FitsHeader extends AbstractDataCubeHeader {
 				logger.trace("Hdu : " + idxHdu);
 
 				Header header = fits.getHDU(idxHdu).getHeader();
+				fitsHeaders.add(header);
 				hduMetadata = retrieveMetadata(header);
 				jsonMetadata.put(hduMetadata);
 
