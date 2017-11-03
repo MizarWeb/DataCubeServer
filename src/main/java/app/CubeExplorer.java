@@ -4,7 +4,11 @@
 package app;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URI;
 import java.util.Locale;
 import java.util.Properties;
 
@@ -95,12 +99,50 @@ public class CubeExplorer {
 		String value = null;
 
 		if (properties == null) {
+			InputStream input = null;
+			OutputStream output = null;
+			String messageFile = null;
+
 			try {
 				properties = new Properties();
-				properties.load(CubeExplorer.class.getClassLoader().getResourceAsStream("conf/cubeExplorer.properties"));
+
+				// Récupère le path de l'application
+				URI classPath = CubeExplorer.class.getProtectionDomain().getCodeSource().getLocation().toURI();
+
+				// Extrait le fichier de conf par défaut si celui-ci n'existe pas
+				File filePath = new File(classPath.getPath(), "cubeExplorer.properties");
+				
+				if (!filePath.exists()) {
+					// Get de la ressource
+					messageFile = "conf/cubeExplorer.properties";
+					input = CubeExplorer.class.getClassLoader().getResourceAsStream(messageFile);
+
+					// Copie du fichier en local
+					messageFile = filePath.getAbsolutePath();
+					output = new FileOutputStream(filePath);
+
+					// On utilise une lecture bufférisé :
+					byte[] buf = new byte[4096];
+					int len = 0;
+					while ((len = input.read(buf)) > 0) {
+						output.write(buf, 0, len);
+					}
+				}
+
+				messageFile = filePath.getAbsolutePath();
+				properties.load(new FileInputStream(filePath));
 			} catch (Exception e) {
 				properties = null;
-				throw new CubeExplorerException(e, "exception.unavailableResource", "conf/cubeExplorer.properties");
+				throw new CubeExplorerException(e, "exception.unavailableResource", messageFile);
+			} finally {
+				try {
+					if (input != null)
+						input.close();
+					if (output != null) output = null;
+						output.close();
+				} catch (Exception e) {
+					throw new CubeExplorerException(e, "exception.libre");
+				}
 			}
 		}
 
@@ -108,8 +150,8 @@ public class CubeExplorer {
 		if (value == null) {
 			if (defaultValue == null) {
 				throw new NotFoundException("property " + key);
-			}
-			else value = defaultValue;
+			} else
+				value = defaultValue;
 		}
 		return value;
 	}

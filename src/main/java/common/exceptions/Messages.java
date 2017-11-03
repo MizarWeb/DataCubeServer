@@ -31,8 +31,8 @@ public abstract class Messages {
 	/**
 	 * Le gestionnaire des messages internes par défaut
 	 */
-	private static ResourceBundle resourceInterne = ResourceBundle.getBundle("conf/messagesException", Locale.ENGLISH);
-	private static ResourceBundle resourceInterneDefault = ResourceBundle.getBundle("conf/messagesException",
+	private static ResourceBundle resourceInterne = null;
+	private static ResourceBundle resourceInterneDefault = ResourceBundle.getBundle("conf/messagesException", 
 			Locale.ENGLISH);
 
 	/**
@@ -67,6 +67,11 @@ public abstract class Messages {
 	public static void load(String basenameBundle, Locale locale) {
 		if (resource == null) {
 			try {
+				try {
+					resourceInterne = ResourceBundle.getBundle("conf/messagesException", locale);
+				} catch (MissingResourceException mre) {
+					// Nothing to do
+				}
 				resource = ResourceBundle.getBundle(basenameBundle, locale);
 			} catch (MissingResourceException mre) {
 				resourceDefault = ResourceBundle.getBundle(basenameBundle, localeDefault);
