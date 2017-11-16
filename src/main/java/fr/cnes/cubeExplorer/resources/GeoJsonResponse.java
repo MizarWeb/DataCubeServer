@@ -18,13 +18,13 @@ public class GeoJsonResponse {
 	/**
 	 * 
 	 */
-	public GeoJsonResponse(int coordx, int coordy, JSONObject properties) {
+	public GeoJsonResponse(int posX, int posY, JSONObject properties) {
 		JSONObject geoJsonFeature = new JSONObject();
 		JSONObject geoJsonGeometry = new JSONObject();
 		JSONArray geoJsonCoordinates = new JSONArray();
 
-		geoJsonCoordinates.put(coordx);
-		geoJsonCoordinates.put(coordy);
+		geoJsonCoordinates.put(posX);
+		geoJsonCoordinates.put(posY);
 		geoJsonGeometry.put("type", "Point");
 		geoJsonGeometry.put("coordinates", geoJsonCoordinates);
 		geoJsonFeature.put("type", "Feature");

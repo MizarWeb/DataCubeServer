@@ -21,7 +21,6 @@ import org.json.JSONObject;
 
 import com.sun.jersey.api.NotFoundException;
 
-import common.enums.CubeType;
 import common.exceptions.CubeExplorerException;
 import common.exceptions.LoggerException;
 import common.exceptions.Messages;
@@ -29,6 +28,7 @@ import common.exceptions.SimpleException;
 import fr.cnes.cubeExplorer.resources.AbstractDataCube;
 import fr.cnes.cubeExplorer.resources.GeoJsonResponse;
 import fr.cnes.cubeExplorer.resources.fits.FitsCube;
+import fr.cnes.cubeExplorer.resources.netcdf.NetcdfCube;
 
 /**
  * Explorateur de cube de données à partir de fichiers fits.
@@ -51,16 +51,22 @@ public class CubeExplorer {
 	/**
 	 * Constructeur
 	 * 
-	 * @param type
-	 *            Type du fichier [FITS]
-	 * @param pFitsFile
+	 * @param filename
 	 *            fichier source
 	 * @throws DataCubeException
 	 *             si une erreur intervient.
 	 */
-	public CubeExplorer(CubeType type, File pFitsFile) throws LoggerException {
-		FitsCube fitsCube = new FitsCube(this, pFitsFile);
-		this.cube = fitsCube;
+	public CubeExplorer(String filename) throws LoggerException {
+		// Identification du type du fichier
+		if (filename.endsWith(".fits")) {
+			this.cube = new FitsCube(this, filename);
+		}
+		else if (filename.endsWith(".nc")) {
+			this.cube = new NetcdfCube(this, filename);
+		}
+		else {
+			
+		}
 	}
 
 	/**
@@ -138,8 +144,10 @@ public class CubeExplorer {
 				try {
 					if (input != null)
 						input.close();
-					if (output != null) output = null;
+					if (output != null) {
 						output.close();
+						output = null;
+					}
 				} catch (Exception e) {
 					throw new CubeExplorerException(e, "exception.libre");
 				}
@@ -178,7 +186,6 @@ public class CubeExplorer {
 		Level logLevel = Level.getLevel("INFO");
 
 		String entry = null;
-		CubeType cubeType = CubeType.FITS;
 
 		try {
 			// Chargement des messages applicatifs
@@ -206,7 +213,6 @@ public class CubeExplorer {
 					entry = args[++indArg];
 					LOGGER.info("Fits file : " + entry);
 					indMand++;
-					cubeType = CubeType.FITS;
 					continue;
 				}
 
@@ -226,7 +232,7 @@ public class CubeExplorer {
 			}
 
 			// Appel de l'application
-			FitsCube fc = (FitsCube) new CubeExplorer(cubeType, new File(entry)).getCube();
+			FitsCube fc = (FitsCube) new CubeExplorer(entry).getCube();
 
 			// toutes les metadata
 			JSONArray metadata = fc.getHeader().getMetadata();
@@ -243,12 +249,12 @@ public class CubeExplorer {
 
 			// Recherche d'une image
 			keyPattern = "^NAXIS.$|^CDELT.$|^CTYP3$";
-			JSONObject slide = fc.getSlide(1, 10, keyPattern, true);
+			JSONObject slide = fc.getSlide(1, 10, keyPattern);
 			LOGGER.trace(slide);
 			GeoJsonResponse geoJsonSlide = new GeoJsonResponse(1, 10, slide);
 
 			File fos = new File(
-					"D:\\temp\\cubeExplorer\\" + fc.getType() + "_slide_" + fc.getFitsFile().getName() + ".json");
+					"D:\\temp\\cubeExplorer\\" + fc.getType() + "_slide_" + fc.getFitsFile() + ".json");
 			FileOutputStream out = new FileOutputStream(fos);
 			out.write(geoJsonSlide.getGeoJson().toString(2).getBytes());
 			out.close();
@@ -260,7 +266,7 @@ public class CubeExplorer {
 			GeoJsonResponse geoJsonSpectre = new GeoJsonResponse(15, 15, spectre);
 
 			fos = new File(
-					"D:\\temp\\cubeExplorer\\" + fc.getType() + "_spectre_" + fc.getFitsFile().getName() + ".json");
+					"D:\\temp\\cubeExplorer\\" + fc.getType() + "_spectre_" + fc.getFitsFile() + ".json");
 			out = new FileOutputStream(fos);
 			out.write(geoJsonSpectre.getGeoJson().toString(2).getBytes());
 			out.close();

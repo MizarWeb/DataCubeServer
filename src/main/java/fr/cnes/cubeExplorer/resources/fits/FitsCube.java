@@ -5,7 +5,6 @@
 
 package fr.cnes.cubeExplorer.resources.fits;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,9 +16,6 @@ import app.CubeExplorer;
 import common.enums.CubeType;
 import common.exceptions.CubeExplorerException;
 import fr.cnes.cubeExplorer.resources.AbstractDataCube;
-import io.github.malapert.jwcs.AbstractJWcs;
-import io.github.malapert.jwcs.JWcsFits;
-import io.github.malapert.jwcs.proj.exception.JWcsException;
 import nom.tam.fits.Fits;
 import nom.tam.fits.FitsException;
 import nom.tam.fits.FitsFactory;
@@ -31,32 +27,33 @@ import nom.tam.fits.TableHDU;
  */
 public class FitsCube extends AbstractDataCube {
 
-	private File fitsFile = null;
+	private String filename = null;
 	private Fits fits = null;
 
 	/**
-	 * @param fileEntry
+	 * @param filename
 	 * @throws CubeExplorerException
 	 */
-	public FitsCube(CubeExplorer ce, File fileEntry) throws CubeExplorerException {
+	public FitsCube(CubeExplorer ce, String filename) throws CubeExplorerException {
 		super(ce, CubeType.FITS);
+		index = 1;
 
-		logger.trace("NEW FitsCube({})", fileEntry);
+		logger.trace("NEW FitsCube({})", filename);
 		
-		this.fitsFile = fileEntry;
+		this.filename = filename;
 
 		// Lecture du fichier fits
-		this.fits = readFits(fileEntry);
+		this.fits = readFits(filename);
 
 		// Get header
 		this.header = new FitsHeader(ce, this);
 	}
 
 	/**
-	 * @return the fitsFile
+	 * @return the filename
 	 */
-	public File getFitsFile() {
-		return fitsFile;
+	public String getFitsFile() {
+		return filename;
 	}
 
 	/**
@@ -66,14 +63,14 @@ public class FitsCube extends AbstractDataCube {
 		return fits;
 	}
 
-	private Fits readFits(File entry) throws CubeExplorerException {
+	private Fits readFits(String filename) throws CubeExplorerException {
 		Fits fits = null;
 
-		logger.trace("ENTER readFits({})", entry);
+		logger.trace("ENTER readFits({})", filename);
 		
 		try {
 			// get the file path
-			fits = new Fits(entry);
+			fits = new Fits(filename);
 			FitsFactory.setUseHierarch(true);
 
 			// read fits file
@@ -88,12 +85,12 @@ public class FitsCube extends AbstractDataCube {
 		return fits;
 	}
 
-	public JSONObject getSlide(int indexHdu, int pNaxis3, String pattern, boolean radec) throws CubeExplorerException {
+	public JSONObject getSlide(int indexHdu, int pNaxis3, String pattern) throws CubeExplorerException {
 		JSONObject properties = new JSONObject();
 		JSONArray metadata = new JSONArray();
 		JSONObject slide = new JSONObject();
 
-		logger.trace("ENTER getSlide({}, {}, {})", pNaxis3, pattern, radec);
+		logger.trace("ENTER getSlide({}, {})", pNaxis3, pattern);
 		
 		try {
 			if (indexHdu < 0 || indexHdu >= fits.getNumberOfHDUs()) {
@@ -117,43 +114,20 @@ public class FitsCube extends AbstractDataCube {
 				throw new CubeExplorerException("exception.outOfBound", "naxis3", pNaxis3, 0, naxis3 - 1);
 			}
 
-			// AbstractJWcs wcs = new JWcsFits(fits, indexHdu);
-			AbstractJWcs wcs = new JWcsFits(((FitsHeader ) this.getHeader()).getFitsHeader(indexHdu));
-			wcs.doInit();
-			
 			// Copie des metadata demandées sans les commentaires
 			metadata = getHeader().selectMetadata(md, pattern);
 
 			double[][][] cubeFits = ((double[][][]) fits.getHDU(indexHdu).getData().getData());
 
 			Double value;
-			JSONArray longitudes = new JSONArray();
-			JSONArray latitudes = new JSONArray();
 			JSONArray values = new JSONArray();
 			for (int idxNaxis1 = 0; idxNaxis1 < naxis1; idxNaxis1++) {
-				JSONArray lineLon = new JSONArray();
-				JSONArray lineLat = new JSONArray();
 				JSONArray lineValues = new JSONArray();
 				for (int idxNaxis2 = 0; idxNaxis2 < naxis2; idxNaxis2++) {
 					value = cubeFits[pNaxis3][idxNaxis2][idxNaxis1];
 					lineValues.put(value.isNaN() ? null : value);
-					if (radec) {
-						// TODO : Calcul des coordonnées
-						 // pour calculer la position (ra, dec) pour chaque pixel
-						double[] result = wcs.pix2wcs((double) idxNaxis1 + 1.0, (double) idxNaxis2 + 1.0);
-						lineLon.put(result[0]);
-						lineLat.put(result[1]);
-					}
-				}
-				if (radec) {
-					longitudes.put(lineLon);
-					latitudes.put(lineLat);
 				}
 				values.put(lineValues);
-			}
-			if (radec) {
-				slide.put("longitude", longitudes);
-				slide.put("latitude", latitudes);
 			}
 			slide.put("value", values);
 			properties.put("metadata", metadata);
@@ -163,8 +137,6 @@ public class FitsCube extends AbstractDataCube {
 			throw new CubeExplorerException(fe);
 		} catch (IOException ioe) {
 			throw new CubeExplorerException(ioe);
-		} catch (JWcsException je) {
-			throw new CubeExplorerException(je);
 		}
 		return properties;
 	}
@@ -351,8 +323,8 @@ public class FitsCube extends AbstractDataCube {
 		try {
 			if (this.fits != null) {
 				this.fits.close();
+				logger.trace("Resource fits " + this.filename + " closed.");
 				this.fits = null;
-				logger.trace("Resource fits " + this.fitsFile.getName() + " closed.");
 			}
 		} catch (IOException ioe) {
 			// Erreur non bloquante

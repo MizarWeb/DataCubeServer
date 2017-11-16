@@ -20,12 +20,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import common.enums.CubeType;
 import common.exceptions.CubeExplorerException;
 import common.exceptions.Messages;
 import common.exceptions.SimpleException;
+import fr.cnes.cubeExplorer.resources.AbstractDataCube;
 import fr.cnes.cubeExplorer.resources.GeoJsonResponse;
-import fr.cnes.cubeExplorer.resources.fits.FitsCube;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -37,7 +36,6 @@ public class RestServices {
 	// Initialise un logger (voir conf/log4j2.xml).
 	final Logger LOGREST = LogManager.getLogger("restServices");
 	
-	final static int indexHdu = 1;
 	String workspace = null;
 
 	/**
@@ -62,8 +60,8 @@ public class RestServices {
 		Messages.load("conf/messages", lang);
 	}
 
-	@RequestMapping(value = "/fits/listFiles", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> getListFiles(@QueryParam("level") String logLevel) {
+	@RequestMapping(value = "/listFiles", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<String> getListFiles(@QueryParam("logLlevel") String logLevel) {
 
 		LOGREST.info("Call getListFiles()");
 
@@ -79,10 +77,11 @@ public class RestServices {
 			dir = new File(workspace);
 
 			// create new filter
+			// Filter to fits or netCdf files
 			FilenameFilter filter = new FilenameFilter() {
 				@Override
 				public boolean accept(File dir, String name) {
-					return name.endsWith(".fits");
+					return name.endsWith(".fits") || name.endsWith(".nc");
 				}
 			};
 
@@ -99,9 +98,9 @@ public class RestServices {
 		return new ResponseEntity<String>(response.toString(), status);
 	}
 
-	@RequestMapping(value = "/fits/header", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	@RequestMapping(value = "/header", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<String> getHeader(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
-			@QueryParam("level") String logLevel) {
+			@QueryParam("logLevel") String logLevel) {
 
 		LOGREST.info("Call getHeader({}, {})", entry, metadata);
 
@@ -109,7 +108,7 @@ public class RestServices {
 		HttpStatus status = HttpStatus.OK;
 
 		GeoJsonResponse geoJsonSlide = null;
-		FitsCube fc = null;
+		AbstractDataCube fc = null;
 
 		try {
 			initService(logLevel);
@@ -119,18 +118,26 @@ public class RestServices {
 				throw new CubeExplorerException(se, "exception.rest.header.syntax");
 			}
 
-			// Lecture du fichier Fits
-			fc = (FitsCube) new CubeExplorer(CubeType.FITS, new File(workspace, entry)).getCube();
+			// Lecture du fichier 
+			CubeExplorer ce = new CubeExplorer(workspace + "/" + entry);
+			fc = ce.getCube();
 
-			JSONObject header = new JSONObject();
-			JSONArray md = fc.getHeader().getMetadata().getJSONArray(indexHdu);
+			JSONObject properties = new JSONObject();
+			properties.put("fileType", fc.getType().toString());
+			
+			JSONArray md = fc.getHeader().getMetadata().getJSONArray(fc.getIndex());
+			
+			// Récupération des dimensions
+			properties.put("dimensions", fc.getHeader().getDimensions());
 			
 			if (metadata != null) {
-				header.put("metadata", fc.getHeader().getMetadata(md, metadata));
+				// Sélection des metadata
+				properties.put("metadata", fc.getHeader().getMetadata(md, metadata));
 			} else {
-				header.put("metadata", fc.getHeader().getMetadata(md));
+				// toutes les metadata
+				properties.put("metadata", fc.getHeader().getMetadata(md));
 			}
-			geoJsonSlide = new GeoJsonResponse(0, 0, header);
+			geoJsonSlide = new GeoJsonResponse(0, 0, properties);
 			response.put("response", geoJsonSlide.getGeoJson());
 
 			fc.close();
@@ -169,22 +176,22 @@ public class RestServices {
 	 *            Name of Fits file
 	 * @param metadata
 	 *            Pattern of metadata to retrieve
-	 * @param naxis3
+	 * @param posZ
 	 *            Deep of slide from datacube
 	 * @return A slide
 	 * @throws SimpleException
 	 */
-	@RequestMapping(value = "/fits/slide", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	@RequestMapping(value = "/slide", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<String> getFitsSlide(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
-			@QueryParam("naxis3") int naxis3, @QueryParam("level") String logLevel) {
+			@QueryParam("posZ") int posZ, @QueryParam("logLevel") String logLevel) {
 
-		LOGREST.info("Call getFitsSlide({}, {}, {})", entry, metadata, naxis3);
+		LOGREST.info("Call getFitsSlide({}, {}, {})", entry, metadata, posZ);
 
 		JSONObject response = new JSONObject();
 		HttpStatus status = HttpStatus.OK;
 
 		GeoJsonResponse geoJsonSlide = null;
-		FitsCube fc = null;
+		AbstractDataCube fc = null;
 
 		try {
 			initService(logLevel);
@@ -194,11 +201,14 @@ public class RestServices {
 				throw new CubeExplorerException(se, "exception.rest.slide.syntax");
 			}
 
-			// Lecture du fichier Fits
-			fc = (FitsCube) new CubeExplorer(CubeType.FITS, new File(workspace, entry)).getCube();
+			// Lecture du fichier 
+			CubeExplorer ce = new CubeExplorer(workspace + "/" + entry);
+			fc = ce.getCube();
 
-			JSONObject slide = fc.getSlide(indexHdu, naxis3, metadata, true);
-			geoJsonSlide = new GeoJsonResponse(1, naxis3, slide);
+			JSONObject properties = fc.getSlide(fc.getIndex(), posZ, metadata);
+			properties.put("fileType", fc.getType().toString());
+			
+			geoJsonSlide = new GeoJsonResponse(1, posZ, properties);
 			response.put("response", geoJsonSlide.getGeoJson());
 
 			fc.close();
@@ -221,18 +231,18 @@ public class RestServices {
 		return new ResponseEntity<String>(response.toString(), status);
 	}
 
-	@RequestMapping(value = "/fits/spectrum", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	@RequestMapping(value = "/spectrum", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<String> getFitsSpectrum(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
-			@QueryParam("naxis1") int naxis1, @QueryParam("naxis2") int naxis2, @QueryParam("level") String logLevel) {
+			@QueryParam("posX") int posX, @QueryParam("posY") int posY, @QueryParam("logLevel") String logLevel) {
 
 		// Initialise un logger (voir conf/log4j2.xml).
-		LOGREST.info("Call getFitsSpectrum({}, {}, {}, {})", entry, metadata, naxis1, naxis2);
+		LOGREST.info("Call getFitsSpectrum({}, {}, {}, {})", entry, metadata, posX, posY);
 
 		JSONObject response = new JSONObject();
 		HttpStatus status = HttpStatus.OK;
 
 		GeoJsonResponse geoJsonSpectrum = null;
-		FitsCube fc = null;
+		AbstractDataCube fc = null;
 
 		try {
 			initService(logLevel);
@@ -242,11 +252,14 @@ public class RestServices {
 				throw new CubeExplorerException(se, "exception.rest.spectrum.syntax");
 			}
 
-			// Lecture du fichier Fits
-			fc = (FitsCube) new CubeExplorer(CubeType.FITS, new File(workspace, entry)).getCube();
+			// Lecture du fichier 
+			CubeExplorer ce = new CubeExplorer(workspace + "/" + entry);
+			fc = ce.getCube();
 
-			JSONObject spectrum = fc.getSpectrum(indexHdu, naxis1, naxis2, metadata);
-			geoJsonSpectrum = new GeoJsonResponse(naxis1, naxis2, spectrum);
+			JSONObject properties = fc.getSpectrum(fc.getIndex(), posX, posY, metadata);
+			properties.put("fileType", fc.getType().toString());
+			
+			geoJsonSpectrum = new GeoJsonResponse(posX, posY, properties);
 			response.put("response", geoJsonSpectrum.getGeoJson());
 
 			fc.close();

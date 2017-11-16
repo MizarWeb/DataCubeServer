@@ -76,7 +76,7 @@ public class FitsHeader extends AbstractDataCubeHeader {
 		return result;
 	}
 
-	private JSONArray retrieveMetadata(Header header) {
+	private JSONArray parseMetadata(Header header) {
 		JSONArray result = new JSONArray();
 		Cursor<String, HeaderCard> cursor = header.iterator();
 		
@@ -134,6 +134,8 @@ public class FitsHeader extends AbstractDataCubeHeader {
 	}
 
 	private void readFitsHeaders(Fits fits) throws CubeExplorerException {
+		logger.trace("ENTER readFitsHeaders()");
+		
 		try {
 			int nberHDUs = fits.getNumberOfHDUs();
 
@@ -141,24 +143,30 @@ public class FitsHeader extends AbstractDataCubeHeader {
 			logger.trace("Getting Headers...");
 			logger.trace("Number of HDUs: " + nberHDUs);
 
+			// Search Hdu image index
 			JSONArray hduMetadata;
-			JSONArray card;
 			String value;
 			for (int idxHdu = 0; idxHdu < nberHDUs; idxHdu++) {
 				logger.trace("Hdu : " + idxHdu);
 
 				Header header = fits.getHDU(idxHdu).getHeader();
 				fitsHeaders.add(header);
-				hduMetadata = retrieveMetadata(header);
+				hduMetadata = parseMetadata(header);
 				jsonMetadata.put(hduMetadata);
 
-				// Search HIERARCH mapping
-				card = getMetadata(hduMetadata, "EXTNAME|HIERARCH.KEY.META.*");
-				if (card.length() != 0) {
-					logger.trace(card);
-				}
+				// Get Dimensions in index Hdu
+				if (idxHdu == cube.getIndex()) {
+					// Get dimensions
+					String posX = getValue(hduMetadata, "NAXIS1");
+					String posY = getValue(hduMetadata, "NAXIS2");
+					String posZ = getValue(hduMetadata, "NAXIS3");
 
-				// search hdu image index
+					jsonDimensions.put("posX", (posX == null) ? 0 : Integer.parseInt(posX));
+					jsonDimensions.put("posY", (posY == null) ? 0 : Integer.parseInt(posY));
+					jsonDimensions.put("posZ", (posZ == null) ? 0 : Integer.parseInt(posZ));
+				}
+				
+				// EXTNAME contains image index
 				value = getValue(hduMetadata, "EXTNAME");
 				if (value != null) {
 					if (value.contains("ImageIndex")) {
@@ -166,6 +174,7 @@ public class FitsHeader extends AbstractDataCubeHeader {
 						indexImage = idxHdu;
 					}
 				}
+				
 			}
 			logger.trace("Header done !");
 		} catch (FitsException fe) {
@@ -174,5 +183,4 @@ public class FitsHeader extends AbstractDataCubeHeader {
 			throw new CubeExplorerException(ioe);
 		}
 	}
-
 }

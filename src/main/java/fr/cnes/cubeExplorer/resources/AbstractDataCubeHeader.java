@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 import app.CubeExplorer;
 import common.exceptions.CubeExplorerException;
@@ -23,6 +24,7 @@ public abstract class AbstractDataCubeHeader {
 	protected CubeExplorer cubeExplorer = null;
 
 	protected JSONArray jsonMetadata = new JSONArray();
+	protected JSONObject jsonDimensions = new JSONObject();
 	protected int indexImage = -1;
 
 	/**
@@ -60,6 +62,10 @@ public abstract class AbstractDataCubeHeader {
 	 */
 	public JSONArray getMetadata() throws CubeExplorerException {
 		return jsonMetadata;
+	}
+
+	public JSONObject getDimensions() {
+		return jsonDimensions;
 	}
 
 	private String parsePattern(String pattern) {
