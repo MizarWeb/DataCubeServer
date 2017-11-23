@@ -36,10 +36,9 @@ public class FitsCube extends AbstractDataCube {
 	 */
 	public FitsCube(CubeExplorer ce, String filename) throws CubeExplorerException {
 		super(ce, CubeType.FITS);
-		index = 1;
 
 		logger.trace("NEW FitsCube({})", filename);
-		
+
 		this.filename = filename;
 
 		// Lecture du fichier fits
@@ -67,7 +66,7 @@ public class FitsCube extends AbstractDataCube {
 		Fits fits = null;
 
 		logger.trace("ENTER readFits({})", filename);
-		
+
 		try {
 			// get the file path
 			fits = new Fits(filename);
@@ -85,22 +84,46 @@ public class FitsCube extends AbstractDataCube {
 		return fits;
 	}
 
-	public JSONObject getSlide(int indexHdu, int pNaxis3, String pattern) throws CubeExplorerException {
+	public JSONObject getHeader(String pattern) throws CubeExplorerException {
+		JSONObject properties = new JSONObject();
+		properties.put("fileType", getType().toString());
+
+		int indexHeader = ((FitsHeader )getHeader()).getIndexHeader();
+
+		JSONArray md = getHeader().getMetadata().getJSONArray(indexHeader);
+
+		// Récupération des dimensions
+		properties.put("dimensions", getHeader().getDimensions());
+
+		if (pattern != null) {
+			// Sélection des metadata
+			properties.put("metadata", getHeader().getMetadata(md, pattern));
+		} else {
+			// toutes les metadata
+			properties.put("metadata", getHeader().getMetadata(md));
+		}
+		return properties;
+	}
+
+	public JSONObject getSlide(int posZ, String pattern) throws CubeExplorerException {
 		JSONObject properties = new JSONObject();
 		JSONArray metadata = new JSONArray();
 		JSONObject slide = new JSONObject();
 
-		logger.trace("ENTER getSlide({}, {})", pNaxis3, pattern);
-		
+		logger.trace("ENTER getSlide({}, {})", posZ, pattern);
+
 		try {
-			if (indexHdu < 0 || indexHdu >= fits.getNumberOfHDUs()) {
+			int indexHeader = ((FitsHeader )getHeader()).getIndexHeader();
+
+			if (indexHeader < 0 || indexHeader >= fits.getNumberOfHDUs()) {
 				// OutOfBound
-				throw new CubeExplorerException("exception.outOfBound", "Hdu", indexHdu, 0, fits.getNumberOfHDUs() - 1);
+				throw new CubeExplorerException("exception.outOfBound", "Hdu", indexHeader, 0,
+						fits.getNumberOfHDUs() - 1);
 			}
 
-			JSONArray md = getHeader().getMetadata().getJSONArray(indexHdu);
+			JSONArray md = getHeader().getMetadata().getJSONArray(indexHeader);
 
-			// Recherche des axes
+			// search axis
 			String naxis1Value = getHeader().getValue(md, "NAXIS1");
 			String naxis2Value = getHeader().getValue(md, "NAXIS2");
 			String naxis3Value = getHeader().getValue(md, "NAXIS3");
@@ -109,30 +132,32 @@ public class FitsCube extends AbstractDataCube {
 			int naxis2 = (naxis2Value == null) ? 0 : Integer.parseInt(naxis2Value);
 			int naxis3 = (naxis3Value == null) ? 0 : Integer.parseInt(naxis3Value);
 
-			if (pNaxis3 < 0 || pNaxis3 >= naxis3) {
+			if (posZ < 0 || posZ >= naxis3) {
 				// OutOfBound
-				throw new CubeExplorerException("exception.outOfBound", "naxis3", pNaxis3, 0, naxis3 - 1);
+				throw new CubeExplorerException("exception.outOfBound", "posZ", posZ, 0, naxis3 - 1);
 			}
 
-			// Copie des metadata demandées sans les commentaires
+			// Copy metadata without comment 
 			metadata = getHeader().selectMetadata(md, pattern);
 
-			double[][][] cubeFits = ((double[][][]) fits.getHDU(indexHdu).getData().getData());
+			double[][][] cubeFits = ((double[][][]) fits.getHDU(indexHeader).getData().getData());
 
 			Double value;
-			JSONArray values = new JSONArray();
-			for (int idxNaxis1 = 0; idxNaxis1 < naxis1; idxNaxis1++) {
+			JSONArray tabValues = new JSONArray();
+			for (int idxNaxis2 = 0; idxNaxis2 < naxis2; idxNaxis2++) {
 				JSONArray lineValues = new JSONArray();
-				for (int idxNaxis2 = 0; idxNaxis2 < naxis2; idxNaxis2++) {
-					value = cubeFits[pNaxis3][idxNaxis2][idxNaxis1];
+				for (int idxNaxis1 = 0; idxNaxis1 < naxis1; idxNaxis1++) {
+					value = cubeFits[posZ][idxNaxis2][idxNaxis1];
 					lineValues.put(value.isNaN() ? null : value);
 				}
-				values.put(lineValues);
+				tabValues.put(lineValues);
 			}
-			slide.put("value", values);
+			slide.put("value", tabValues);
 			properties.put("metadata", metadata);
 			properties.put("slide", slide);
 
+		} catch (CubeExplorerException ce) {
+			throw ce;
 		} catch (FitsException fe) {
 			throw new CubeExplorerException(fe);
 		} catch (IOException ioe) {
@@ -141,21 +166,24 @@ public class FitsCube extends AbstractDataCube {
 		return properties;
 	}
 
-	public JSONObject getSpectrum(int indexHdu, int pNaxis1, int pNaxis2, String pattern) throws CubeExplorerException {
+	public JSONObject getSpectrum(int posX, int posY, String pattern) throws CubeExplorerException {
 		JSONObject properties = new JSONObject();
 		JSONArray metadata = new JSONArray();
 		JSONObject spectrum = new JSONObject();
 
-		logger.trace("ENTER getSpectrum({}, {}, {})", pNaxis1, pNaxis2, pattern);
-		
+		logger.trace("ENTER getSpectrum({}, {}, {})", posX, posY, pattern);
+
 		// Lecture des données du fichier fits
 		try {
-			if (indexHdu < 0 || indexHdu >= fits.getNumberOfHDUs()) {
+			int indexHeader = ((FitsHeader )getHeader()).getIndexHeader();
+
+			if (indexHeader < 0 || indexHeader >= fits.getNumberOfHDUs()) {
 				// OutOfBound
-				throw new CubeExplorerException("exception.outOfBound", "Hdu", indexHdu, 0, fits.getNumberOfHDUs() - 1);
+				throw new CubeExplorerException("exception.outOfBound", "Hdu", indexHeader, 0,
+						fits.getNumberOfHDUs() - 1);
 			}
 
-			JSONArray md = getHeader().getMetadata().getJSONArray(indexHdu);
+			JSONArray md = getHeader().getMetadata().getJSONArray(indexHeader);
 
 			// Recherche des axes
 			String naxis1Value = getHeader().getValue(md, "NAXIS1");
@@ -166,26 +194,26 @@ public class FitsCube extends AbstractDataCube {
 			int naxis2 = (naxis2Value == null) ? 0 : Integer.parseInt(naxis2Value);
 			int naxis3 = (naxis3Value == null) ? 0 : Integer.parseInt(naxis3Value);
 
-			if (pNaxis1 < 0 || pNaxis1 >= naxis1) {
+			if (posX < 0 || posX >= naxis1) {
 				// OutOfBound
-				throw new CubeExplorerException("exception.outOfBound", "naxis1", 0, pNaxis1, naxis1 - 1);
+				throw new CubeExplorerException("exception.outOfBound", "posX", posX, 0, naxis1 - 1);
 			}
 
-			if (pNaxis2 < 0 || pNaxis2 >= naxis2) {
+			if (posY < 0 || posY >= naxis2) {
 				// OutOfBound
-				throw new CubeExplorerException("exception.outOfBound", "naxis2", 0, pNaxis2, naxis2 - 1);
+				throw new CubeExplorerException("exception.outOfBound", "posY", posY, 0, naxis2 - 1);
 			}
 
 			// Copie des metadata demandées sans les commentaires
 			metadata = getHeader().selectMetadata(md, pattern);
 
-			double[][][] cubeFits = ((double[][][]) fits.getHDU(indexHdu).getData().getData());
+			double[][][] cubeFits = ((double[][][]) fits.getHDU(indexHeader).getData().getData());
 
 			Double value;
 			JSONArray waveslength = new JSONArray();
 			JSONArray values = new JSONArray();
 			for (int idxNaxis3 = 0; idxNaxis3 < naxis3; idxNaxis3++) {
-				value = cubeFits[idxNaxis3][pNaxis2][pNaxis1];
+				value = cubeFits[idxNaxis3][posY][posX];
 				values.put(value.isNaN() ? null : value);
 				waveslength.put((double) idxNaxis3);
 			}
@@ -194,6 +222,8 @@ public class FitsCube extends AbstractDataCube {
 			properties.put("metadata", metadata);
 			properties.put("spectrum", spectrum);
 
+		} catch (CubeExplorerException ce) {
+			throw ce;
 		} catch (FitsException fe) {
 			throw new CubeExplorerException(fe);
 		} catch (IOException ioe) {

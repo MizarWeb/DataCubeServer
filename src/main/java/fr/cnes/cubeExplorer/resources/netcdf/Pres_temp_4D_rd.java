@@ -64,7 +64,7 @@ public class Pres_temp_4D_rd {
 		      }
 
 		      Variable tempVar = dataFile.findVariable("temperature");
-		      if (lonVar == null) {
+		      if (tempVar == null) {
 		        System.out.println("Cant find Variable temperature");
 		        return;
 		      }

@@ -46,7 +46,7 @@ public abstract class AbstractDataCubeHeader {
 	}
 
 	/**
-	 * Return index of hdu for fits file.
+	 * Return index of image for fits file.
 	 * 
 	 * @return the indexImage or -1 if not found
 	 */

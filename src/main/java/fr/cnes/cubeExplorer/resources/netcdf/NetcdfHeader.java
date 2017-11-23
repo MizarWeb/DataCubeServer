@@ -13,8 +13,8 @@ import org.json.JSONArray;
 import app.CubeExplorer;
 import common.exceptions.CubeExplorerException;
 import fr.cnes.cubeExplorer.resources.AbstractDataCubeHeader;
+import ucar.ma2.ArrayFloat;
 import ucar.nc2.Attribute;
-import ucar.nc2.Dimension;
 import ucar.nc2.NetcdfFile;
 import ucar.nc2.Variable;
 
@@ -62,61 +62,89 @@ public class NetcdfHeader extends AbstractDataCubeHeader {
 
 		for (Variable variable : variables) {
 			JSONArray jsonCard = new JSONArray();
-			
+
 			// New value
-			jsonCard.put(variable.getFullName());
-			jsonCard.put(variable.getDimensions().toString());
-			
+			String key = variable.getFullName();
+			String value = variable.getDimensions().toString();
+			String comment = "";
+
 			// search units attribute
 			for (Attribute attribute : variable.getAttributes()) {
 				if (attribute.getFullName().equals("units")) {
-					jsonCard.put(attribute.getStringValue());
+					comment = attribute.getStringValue();
 					break;
 				}
 			}
-			
+
 			// Store value
+			jsonCard.put(key);
+			jsonCard.put(value);
+			jsonCard.put(comment);
 			result.put(jsonCard);
 		}
+
 		return result;
 	}
 
 	private void readNetcdfHeader(NetcdfFile ncfile) throws CubeExplorerException {
 		logger.trace("ENTER readNetcdfHeader()");
 		try {
-			JSONArray metadata;
-			metadata = parseMetadata(ncfile.getVariables());
-			jsonMetadata.put(metadata);
+			// Get the latitude and longitude Variables.
+			Variable lonVar = ncfile.findVariable("lon");
+			Variable latVar = ncfile.findVariable("lat");
+			Variable levelVar = ncfile.findVariable("level");
 
-			// Get dimensions
-			int posX = 0;
-			int posY = 0;
-			int posZ = 0;
+			if (lonVar == null)
+				throw new CubeExplorerException("exception.cube.dimMissing", "lon");
+			if (latVar == null)
+				throw new CubeExplorerException("exception.cube.dimMissing", "lat");
+			if (levelVar == null)
+				throw new CubeExplorerException("exception.cube.dimMissing", "level");
 
-			List<Dimension> dim = ncfile.getDimensions();
+			jsonMetadata = parseMetadata(ncfile.getVariables());
 
-			for (Dimension dimension : dim) {
-				String name = dimension.getFullName();
-				switch (name) {
-				case "lon":
-					posX = dimension.getLength();
-					break;
-				case "lat":
-					posY = dimension.getLength();
-					break;
-				case "level":
-					posZ = dimension.getLength();
-					break;
+			// Get size of axis
+			int lonDim = (int) lonVar.getSize();
+			int latDim = (int) latVar.getSize();
+			int levelDim = (int) levelVar.getSize();
 
-				default:
-					break;
-				}
+			jsonDimensions.put("dimX", lonDim);
+			jsonDimensions.put("dimY", latDim);
+			jsonDimensions.put("dimZ", levelDim);
 
-			}
-			jsonDimensions.put("posX", posX);
-			jsonDimensions.put("posY", posY);
-			jsonDimensions.put("posZ", posZ);
+			// Get axis type (8 characters)
+			jsonDimensions.put("typeX", (lonVar.getDescription() == null)? "" : lonVar.getDescription());
+			jsonDimensions.put("typeY", (latVar.getDescription() == null)? "" : latVar.getDescription());
+			jsonDimensions.put("typeZ", (levelVar.getDescription() == null)? "" : levelVar.getDescription());
 
+			// Retrieve first and last values from each axis to compute step
+			ArrayFloat.D1 lonArray = (ArrayFloat.D1) lonVar.read();
+			ArrayFloat.D1 latArray = (ArrayFloat.D1) latVar.read();
+			ArrayFloat.D1 levelArray = (ArrayFloat.D1) levelVar.read();
+
+			jsonDimensions.put("refX", 0.0);
+			jsonDimensions.put("refY", 0.0);
+			jsonDimensions.put("refZ", 0.0);
+
+			// Get array location of the reference point in pixels
+			Float lonRef = lonArray.get(0);
+			Float latRef = latArray.get(0);
+			Float levelRef = levelArray.get(0);
+
+			// Get coordinate values at reference point
+			jsonDimensions.put("refLon", lonRef);
+			jsonDimensions.put("refLat", latRef);
+			jsonDimensions.put("refLevel", levelRef);
+
+			// Step = (lastValue - firstValue) / (length - 1)
+			Float lonStep = ((lonArray.get(lonDim - 1) - lonRef) / (lonDim - 1));
+			Float latStep = ((latArray.get(latDim - 1) - latRef) / (latDim - 1));
+			Float levelStep = ((levelArray.get(levelDim - 1) - levelRef) / (levelDim - 1));
+
+			// Get coordinate increments at reference point
+			jsonDimensions.put("stepX", lonStep);
+			jsonDimensions.put("stepY", latStep);
+			jsonDimensions.put("stepZ", levelStep);
 		} catch (Exception ioe) {
 			throw new CubeExplorerException(ioe);
 		}

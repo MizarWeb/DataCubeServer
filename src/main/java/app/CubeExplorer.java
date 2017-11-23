@@ -249,7 +249,7 @@ public class CubeExplorer {
 
 			// Recherche d'une image
 			keyPattern = "^NAXIS.$|^CDELT.$|^CTYP3$";
-			JSONObject slide = fc.getSlide(1, 10, keyPattern);
+			JSONObject slide = fc.getSlide(10, keyPattern);
 			LOGGER.trace(slide);
 			GeoJsonResponse geoJsonSlide = new GeoJsonResponse(1, 10, slide);
 
@@ -261,7 +261,7 @@ public class CubeExplorer {
 
 			// Recherche d'un spectre
 			keyPattern = "NAXIS3";
-			JSONObject spectre = fc.getSpectrum(1, 15, 15, keyPattern);
+			JSONObject spectre = fc.getSpectrum(15, 15, keyPattern);
 			LOGGER.trace(spectre);
 			GeoJsonResponse geoJsonSpectre = new GeoJsonResponse(15, 15, spectre);
 

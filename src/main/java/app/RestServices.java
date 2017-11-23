@@ -10,7 +10,6 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -108,7 +107,7 @@ public class RestServices {
 		HttpStatus status = HttpStatus.OK;
 
 		GeoJsonResponse geoJsonSlide = null;
-		AbstractDataCube fc = null;
+		AbstractDataCube adc = null;
 
 		try {
 			initService(logLevel);
@@ -120,27 +119,16 @@ public class RestServices {
 
 			// Lecture du fichier 
 			CubeExplorer ce = new CubeExplorer(workspace + "/" + entry);
-			fc = ce.getCube();
+			adc = ce.getCube();
 
-			JSONObject properties = new JSONObject();
-			properties.put("fileType", fc.getType().toString());
-			
-			JSONArray md = fc.getHeader().getMetadata().getJSONArray(fc.getIndex());
-			
-			// Récupération des dimensions
-			properties.put("dimensions", fc.getHeader().getDimensions());
-			
-			if (metadata != null) {
-				// Sélection des metadata
-				properties.put("metadata", fc.getHeader().getMetadata(md, metadata));
-			} else {
-				// toutes les metadata
-				properties.put("metadata", fc.getHeader().getMetadata(md));
-			}
+			JSONObject properties = adc.getHeader(metadata);
+			properties.put("fileType", adc.getType().toString());
+
+			// Format json response
 			geoJsonSlide = new GeoJsonResponse(0, 0, properties);
 			response.put("response", geoJsonSlide.getGeoJson());
 
-			fc.close();
+			adc.close();
 		} catch (SimpleException se) {
 			status = HttpStatus.BAD_REQUEST;
 			String message = se.getMessages().toString();
@@ -152,8 +140,8 @@ public class RestServices {
 			response.put("message", message);
 			// response.put("messageHtml", Text2Html.replace(message));
 		} finally {
-			if (fc != null)
-				fc.close();
+			if (adc != null)
+				adc.close();
 		}
 
 		response.put("status", status.name());
@@ -205,9 +193,10 @@ public class RestServices {
 			CubeExplorer ce = new CubeExplorer(workspace + "/" + entry);
 			fc = ce.getCube();
 
-			JSONObject properties = fc.getSlide(fc.getIndex(), posZ, metadata);
+			JSONObject properties = fc.getSlide(posZ, metadata);
 			properties.put("fileType", fc.getType().toString());
 			
+			// Format json response
 			geoJsonSlide = new GeoJsonResponse(1, posZ, properties);
 			response.put("response", geoJsonSlide.getGeoJson());
 
@@ -256,9 +245,10 @@ public class RestServices {
 			CubeExplorer ce = new CubeExplorer(workspace + "/" + entry);
 			fc = ce.getCube();
 
-			JSONObject properties = fc.getSpectrum(fc.getIndex(), posX, posY, metadata);
+			JSONObject properties = fc.getSpectrum(posX, posY, metadata);
 			properties.put("fileType", fc.getType().toString());
 			
+			// Format json response
 			geoJsonSpectrum = new GeoJsonResponse(posX, posY, properties);
 			response.put("response", geoJsonSpectrum.getGeoJson());
 

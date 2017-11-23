@@ -30,6 +30,7 @@ public class FitsHeader extends AbstractDataCubeHeader {
 
 	private FitsCube cube = null;
 	private List<Header> fitsHeaders = new ArrayList<Header>();
+	protected int indexHeader = 0;
 
 	/**
 	 * construct a header fits JSONArray from fits file
@@ -43,6 +44,7 @@ public class FitsHeader extends AbstractDataCubeHeader {
 
 		logger.trace("NEW FitsHeader({})", cube);
 
+		this.indexHeader = 1;
 		this.cube = cube;
 		if (this.cube == null || this.cube.getFits() == null) {
 			throw new CubeExplorerException("exception.fits.null");
@@ -64,6 +66,13 @@ public class FitsHeader extends AbstractDataCubeHeader {
 	 */
 	public Header getFitsHeader(int idxHdu) {
 		return fitsHeaders.get(idxHdu);
+	}
+
+	/**
+	 * @return the indexHeader
+	 */
+	public int getIndexHeader() {
+		return indexHeader;
 	}
 
 	private String StringInContinue(String val) {
@@ -154,16 +163,55 @@ public class FitsHeader extends AbstractDataCubeHeader {
 				hduMetadata = parseMetadata(header);
 				jsonMetadata.put(hduMetadata);
 
-				// Get Dimensions in index Hdu
-				if (idxHdu == cube.getIndex()) {
-					// Get dimensions
-					String posX = getValue(hduMetadata, "NAXIS1");
-					String posY = getValue(hduMetadata, "NAXIS2");
-					String posZ = getValue(hduMetadata, "NAXIS3");
+				// Get references information for hdu
+				// NAXIS n 	size of axis
+				// CRVAL n 	coordinate value at reference point
+				// CRPIX n 	array location of the reference point in pixels
+				// CDELT n 	coordinate increment at reference point
+				// CTYPE n 	axis type (8 characters)
+				// CROTA n 	rotation from stated coordinate type.
+				if (idxHdu == indexHeader) {
+					String vX, vY, vZ;
+					// Get size of axis
 
-					jsonDimensions.put("posX", (posX == null) ? 0 : Integer.parseInt(posX));
-					jsonDimensions.put("posY", (posY == null) ? 0 : Integer.parseInt(posY));
-					jsonDimensions.put("posZ", (posZ == null) ? 0 : Integer.parseInt(posZ));
+					vX = getValue(hduMetadata, "NAXIS1");
+					vY = getValue(hduMetadata, "NAXIS2");
+					vZ = getValue(hduMetadata, "NAXIS3");
+					jsonDimensions.put("dimX", (vX == null)? 0.0 : Float.parseFloat(vX));
+					jsonDimensions.put("dimY", (vY == null)? 0.0 : Float.parseFloat(vZ));
+					jsonDimensions.put("dimZ", (vZ == null)? 0.0 : Float.parseFloat(vZ));
+
+					// Get axis type (8 characters)
+					vX = getValue(hduMetadata, "CTYPE1");
+					vY = getValue(hduMetadata, "CTYPE2");
+					vZ = getValue(hduMetadata, "CTYPE3");
+					jsonDimensions.put("typeX", (vX == null)? "" : vX);
+					jsonDimensions.put("typeY", (vY == null)? "" : vY);
+					jsonDimensions.put("typeZ", (vZ == null)? "" : vZ);
+
+					// Get array location of the reference point in pixels
+					vX = getValue(hduMetadata, "CRPIX1");
+					vY = getValue(hduMetadata, "CRPIX2");
+					vZ = getValue(hduMetadata, "CRPIX3");
+					jsonDimensions.put("refX", (vX == null)? 0.0 : Float.parseFloat(vX));
+					jsonDimensions.put("refY", (vY == null)? 0.0 : Float.parseFloat(vY));
+					jsonDimensions.put("refZ", (vZ == null)? 0.0 : Float.parseFloat(vZ));
+
+					// Get coordinate values at reference point
+					vX = getValue(hduMetadata, "CRVAL1");
+					vY = getValue(hduMetadata, "CRVAL2");
+					vZ = getValue(hduMetadata, "CRVAL3");
+					jsonDimensions.put("refLon", (vX == null)? 0.0 : Float.parseFloat(vX));
+					jsonDimensions.put("refLat", (vY == null)? 0.0 : Float.parseFloat(vY));
+					jsonDimensions.put("refLevel", (vZ == null)? 0.0 : Float.parseFloat(vZ));
+
+					// Get coordinate increments at reference point
+					vX = getValue(hduMetadata, "CDELT1");
+					vY = getValue(hduMetadata, "CDELT2");
+					vZ = getValue(hduMetadata, "CDELT3");
+					jsonDimensions.put("stepX", (vX == null)? 0.0 : Float.parseFloat(vX));
+					jsonDimensions.put("stepY", (vY == null)? 0.0 : Float.parseFloat(vY));
+					jsonDimensions.put("stepZ", (vZ == null)? 0.0 : Float.parseFloat(vZ));
 				}
 				
 				// EXTNAME contains image index
