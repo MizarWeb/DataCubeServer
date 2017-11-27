@@ -152,6 +152,8 @@ public class FitsCube extends AbstractDataCube {
 				}
 				tabValues.put(lineValues);
 			}
+
+			// Store data to json
 			slide.put("value", tabValues);
 			properties.put("metadata", metadata);
 			properties.put("slide", slide);

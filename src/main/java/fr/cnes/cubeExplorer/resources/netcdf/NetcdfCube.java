@@ -129,9 +129,21 @@ public class NetcdfCube extends AbstractDataCube {
 
 			// Copy metadata without comment
 			JSONArray md = getHeader().getMetadata();
-
 			metadata = getHeader().selectMetadata(md, pattern);
-			slide.put("value", slideArray);
+
+			Float value;
+			JSONArray tabValues = new JSONArray();
+			for (int idxPosY = 0; idxPosY < cubeShape[1]; idxPosY++) {
+				JSONArray lineValues = new JSONArray();
+				for (int idxPosX = 0; idxPosX < cubeShape[2]; idxPosX++) {
+					value = slideArray.get(idxPosY, idxPosX);
+					lineValues.put(value.isNaN() ? null : value);
+				}
+				tabValues.put(lineValues);
+			}
+
+			// Store data to json
+			slide.put("value", tabValues);
 			properties.put("metadata", metadata);
 			properties.put("slide", slide);
 
@@ -182,13 +194,19 @@ public class NetcdfCube extends AbstractDataCube {
 			cubeOrigin[2] = posX; // read this index
 
 			// read 3D array for that index => 1D
-			ArrayFloat.D1 wavelength = (ArrayFloat.D1) (cubeVar.read(cubeOrigin, cubeShape).reduce());
+			ArrayFloat.D1 cubeNetcdf = (ArrayFloat.D1) (cubeVar.read(cubeOrigin, cubeShape).reduce());
 
 			// Copy metadata without comment
 			JSONArray md = getHeader().getMetadata();
 
+			JSONArray wavelength = new JSONArray();
+			for (int idxPosZ = 0; idxPosZ < cubeShape[0]; idxPosZ++) {
+				wavelength.put((double) idxPosZ);
+			}
+			
 			metadata = getHeader().selectMetadata(md, pattern);
 			spectrum.put("wavelength", wavelength);
+			spectrum.put("value", cubeNetcdf.getStorage());
 			properties.put("metadata", metadata);
 			properties.put("spectrum", spectrum);
 
