@@ -170,7 +170,7 @@ public class RestServices {
 	 * @throws SimpleException
 	 */
 	@RequestMapping(value = "/slide", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> getFitsSlide(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
+	public ResponseEntity<String> getSlide(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
 			@QueryParam("posZ") int posZ, @QueryParam("logLevel") String logLevel) {
 
 		LOGREST.info("Call getFitsSlide({}, {}, {})", entry, metadata, posZ);
@@ -221,7 +221,7 @@ public class RestServices {
 	}
 
 	@RequestMapping(value = "/spectrum", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> getFitsSpectrum(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
+	public ResponseEntity<String> getSpectrum(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
 			@QueryParam("posX") int posX, @QueryParam("posY") int posY, @QueryParam("logLevel") String logLevel) {
 
 		// Initialise un logger (voir conf/log4j2.xml).

@@ -18,7 +18,15 @@
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
-			<version>20160810</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
 		</dependency>
 
 		<dependency>
@@ -43,16 +51,7 @@
 			<artifactId>jersey-server</artifactId>
 			<version>1.8</version>
 		</dependency>
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-api</artifactId>
-			<version>2.9.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-core</artifactId>
-			<version>2.9.1</version>
-		</dependency>
+
 
 		<dependency>
 			<groupId>gov.nasa.gsfc.heasarc</groupId>
@@ -60,12 +59,12 @@
 			<version>1.15.2</version>
 		</dependency>
 
-        <dependency>
+		<dependency>
 			<groupId>edu.ucar</groupId>
 			<artifactId>netcdfAll</artifactId>
 			<version>4.6.9</version>
-        </dependency>
-		
+		</dependency>
+
 		<!-- <dependency> <groupId>edu.ucar</groupId> <artifactId>cdm</artifactId> 
 			<version>${netcdfJavaVersion}</version> <scope>compile</scope> </dependency> -->
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-math3 -->
@@ -76,6 +75,26 @@
 		</dependency>
 
 	</dependencies>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.json</groupId>
+				<artifactId>json</artifactId>
+				<version>20160810</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.logging.log4j</groupId>
+				<artifactId>log4j-api</artifactId>
+				<version>2.9.1</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.logging.log4j</groupId>
+				<artifactId>log4j-core</artifactId>
+				<version>2.9.1</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<properties>
 		<java.version>1.8</java.version>
@@ -114,7 +133,7 @@
 			<url>https://repo.spring.io/libs-release</url>
 		</repository>
 	</repositories>
-	
+
 	<pluginRepositories>
 		<pluginRepository>
 			<id>spring-releases</id>
