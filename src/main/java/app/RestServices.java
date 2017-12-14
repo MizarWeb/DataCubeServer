@@ -2,6 +2,7 @@ package app;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -87,7 +88,7 @@ public class RestServices {
             };
 
             // array of files and directory
-            List<String> dirList = Arrays.asList(dir.list(filter));
+            List<String> dirList = new ArrayList<String>(Arrays.asList(dir.list(filter)));
             dirList.add("testMizar");
             response.put("response", dirList.toArray());
         }
