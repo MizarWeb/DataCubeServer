@@ -46,7 +46,7 @@ public class FitsHeader extends AbstractDataCubeHeader {
         this.indexHeader = 1;
         this.cube = cube;
         if (this.cube == null || this.cube.getFits() == null) {
-            throw new CubeExplorerException("exception.fits.null");
+            throw new CubeExplorerException("exception.file.null");
         }
 
         // Read fits file

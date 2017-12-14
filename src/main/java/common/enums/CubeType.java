@@ -13,9 +13,13 @@ public enum CubeType {
      */
     FITS("fits"),
     /**
-     * FRANCAIS
+     * netCDF
      */
-    NETCDF("netCDF");
+    NETCDF("netCDF"),
+    /**
+     * Mizar
+     */
+    MIZAR("mizar");
 
     private String name;
 

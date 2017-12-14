@@ -2,6 +2,8 @@ package app;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 
 import javax.ws.rs.QueryParam;
@@ -28,248 +30,255 @@ import fr.cnes.cubeExplorer.resources.GeoJsonResponse;
 @CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/cubeExplorer/rest")
-//@Path("/rest")
-//@Consumes(MediaType.APPLICATION_JSON)
+// @Path("/rest")
+// @Consumes(MediaType.APPLICATION_JSON)
 public class RestServices {
 
-	// Initialise un logger (voir conf/log4j2.xml).
-	final Logger LOGREST = LogManager.getLogger("restServices");
-	
-	String workspace = null;
+    // Initialize logger (see conf/log4j2.xml).
+    final Logger LOGREST = LogManager.getLogger("restServices");
 
-	/**
-	 * @return the workspace
-	 */
-	public String getWorkspace() {
-		return workspace;
-	}
+    String workspace = null;
 
-	private void initService(String logLevel) throws CubeExplorerException {
-		// Log level
-		if (logLevel != null && Level.getLevel((logLevel = logLevel.toUpperCase())) != null) {
-			Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.getLevel(logLevel));
-			LOGREST.trace("LEVEL : {}", logLevel);
-		}
+    /**
+     * @return the workspace
+     */
+    public String getWorkspace() {
+        return workspace;
+    }
 
-		// Properties
-		workspace = CubeExplorer.getProperty("workspace", ".");
-		Locale lang = new Locale(CubeExplorer.getProperty("lang", Locale.getDefault().toString()));
+    private void initService(String logLevel) throws CubeExplorerException {
+        // Log level
+        if (logLevel != null && Level.getLevel((logLevel = logLevel.toUpperCase())) != null) {
+            Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.getLevel(logLevel));
+            LOGREST.trace("LEVEL : {}", logLevel);
+        }
 
-		// Chargement des messages applicatifs
-		Messages.load("conf/messages", lang);
-	}
+        // Properties
+        workspace = CubeExplorer.getProperty("workspace", ".");
+        Locale lang = new Locale(CubeExplorer.getProperty("lang", Locale.getDefault().toString()));
 
-	@RequestMapping(value = "/listFiles", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> getListFiles(@QueryParam("logLlevel") String logLevel) {
+        // loading application messages
+        Messages.load("conf/messages", lang);
+    }
 
-		LOGREST.info("Call getListFiles()");
+    @RequestMapping(value = "/listFiles", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> getListFiles(@QueryParam("logLlevel") String logLevel) {
 
-		JSONObject response = new JSONObject();
-		HttpStatus status = HttpStatus.OK;
+        LOGREST.info("Call getListFiles()");
 
-		try {
-			initService(logLevel);
+        JSONObject response = new JSONObject();
+        HttpStatus status = HttpStatus.OK;
 
-			File dir = null;
+        try {
+            initService(logLevel);
 
-			// create new file
-			dir = new File(workspace);
+            File dir = null;
 
-			// create new filter
-			// Filter to fits or netCdf files
-			FilenameFilter filter = new FilenameFilter() {
-				@Override
-				public boolean accept(File dir, String name) {
-					return name.endsWith(".fits") || name.endsWith(".nc");
-				}
-			};
+            // create new file
+            dir = new File(workspace);
 
-			// array of files and directory
-			response.put("response", dir.list(filter));
-		} catch (Exception e) {
-			status = HttpStatus.INTERNAL_SERVER_ERROR;
-			String message = e.getMessage();
-			response.put("message", message);
-			// response.put("messageHtml", Text2Html.replace(message));
-		}
+            // create new filter
+            // Filter to fits or netCdf files
+            FilenameFilter filter = new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.endsWith(".fits") || name.endsWith(".nc");
+                }
+            };
 
-		response.put("status", status.name());
-		return new ResponseEntity<String>(response.toString(), status);
-	}
+            // array of files and directory
+            List<String> dirList = Arrays.asList(dir.list(filter));
+            dirList.add("testMizar");
+            response.put("response", dirList.toArray());
+        }
+        catch (Exception e) {
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
+            String message = e.getMessage();
+            response.put("message", message);
+            // response.put("messageHtml", Text2Html.replace(message));
+        }
 
-	@RequestMapping(value = "/header", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> getHeader(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
-			@QueryParam("logLevel") String logLevel) {
+        response.put("status", status.name());
+        return new ResponseEntity<String>(response.toString(), status);
+    }
 
-		LOGREST.info("Call getHeader({}, {})", entry, metadata);
+    @RequestMapping(value = "/header", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> getHeader(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
+        @QueryParam("logLevel") String logLevel) {
 
-		JSONObject response = new JSONObject();
-		HttpStatus status = HttpStatus.OK;
+        LOGREST.info("Call getHeader({}, {})", entry, metadata);
 
-		GeoJsonResponse geoJsonSlide = null;
-		AbstractDataCube adc = null;
+        JSONObject response = new JSONObject();
+        HttpStatus status = HttpStatus.OK;
 
-		try {
-			initService(logLevel);
+        GeoJsonResponse geoJsonSlide = null;
+        AbstractDataCube adc = null;
 
-			if (entry == null) {
-				SimpleException se = new SimpleException("exception.parameterMissing", "entry");
-				throw new CubeExplorerException(se, "exception.rest.header.syntax");
-			}
+        try {
+            initService(logLevel);
 
-			// Lecture du fichier 
-			CubeExplorer ce = new CubeExplorer(workspace + "/" + entry);
-			adc = ce.getCube();
+            if (entry == null) {
+                SimpleException se = new SimpleException("exception.parameterMissing", "entry");
+                throw new CubeExplorerException(se, "exception.rest.header.syntax");
+            }
 
-			JSONObject properties = adc.getHeader(metadata);
-			properties.put("fileType", adc.getType().toString());
+            // read file
+            CubeExplorer ce = new CubeExplorer(workspace + "/" + entry);
+            adc = ce.getCube();
 
-			// Format json response
-			geoJsonSlide = new GeoJsonResponse(0, 0, properties);
-			response.put("response", geoJsonSlide.getGeoJson());
+            JSONObject properties = adc.getHeader(metadata);
+            properties.put("fileType", adc.getType().toString());
 
-			adc.close();
-		} catch (SimpleException se) {
-			status = HttpStatus.BAD_REQUEST;
-			String message = se.getMessages().toString();
-			response.put("message", message);
-			// response.put("messageHtml", Text2Html.replace(message));
-		} catch (Exception e) {
-			status = HttpStatus.INTERNAL_SERVER_ERROR;
-			String message = e.getMessage();
-			response.put("message", message);
-			// response.put("messageHtml", Text2Html.replace(message));
-		} finally {
-			if (adc != null)
-				adc.close();
-		}
+            // Format json response
+            geoJsonSlide = new GeoJsonResponse(0, 0, properties);
+            response.put("response", geoJsonSlide.getGeoJson());
 
-		response.put("status", status.name());
-		return new ResponseEntity<String>(response.toString(), status);
-	}
+            adc.close();
+        }
+        catch (SimpleException se) {
+            status = HttpStatus.BAD_REQUEST;
+            String message = se.getMessages().toString();
+            response.put("message", message);
+            // response.put("messageHtml", Text2Html.replace(message));
+        }
+        catch (Exception e) {
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
+            String message = e.getMessage();
+            response.put("message", message);
+            // response.put("messageHtml", Text2Html.replace(message));
+        }
+        finally {
+            if (adc != null) adc.close();
+        }
 
-	// @GET
-	// @Path("/testGet")
-	// public Response getTest() {
-	// return Response
-	// .status(Status.OK)
-	// .entity("Hello")
-	// .build();
-	// }
-	//
-	/**
-	 * Get a slide from Fits File
-	 * 
-	 * @param entry
-	 *            Name of Fits file
-	 * @param metadata
-	 *            Pattern of metadata to retrieve
-	 * @param posZ
-	 *            Deep of slide from datacube
-	 * @return A slide
-	 * @throws SimpleException
-	 */
-	@RequestMapping(value = "/slide", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> getSlide(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
-			@QueryParam("posZ") int posZ, @QueryParam("logLevel") String logLevel) {
+        response.put("status", status.name());
+        return new ResponseEntity<String>(response.toString(), status);
+    }
 
-		LOGREST.info("Call getFitsSlide({}, {}, {})", entry, metadata, posZ);
+    // @GET
+    // @Path("/testGet")
+    // public Response getTest() {
+    // return Response
+    // .status(Status.OK)
+    // .entity("Hello")
+    // .build();
+    // }
+    //
+    /**
+     * Get a slide from Fits File
+     * 
+     * @param entry Name of Fits file
+     * @param metadata Pattern of metadata to retrieve
+     * @param posZ Deep of slide from datacube
+     * @return A slide
+     * @throws SimpleException
+     */
+    @RequestMapping(value = "/slide", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> getSlide(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
+        @QueryParam("posZ") int posZ, @QueryParam("logLevel") String logLevel) {
 
-		JSONObject response = new JSONObject();
-		HttpStatus status = HttpStatus.OK;
+        LOGREST.info("Call getFitsSlide({}, {}, {})", entry, metadata, posZ);
 
-		GeoJsonResponse geoJsonSlide = null;
-		AbstractDataCube fc = null;
+        JSONObject response = new JSONObject();
+        HttpStatus status = HttpStatus.OK;
 
-		try {
-			initService(logLevel);
+        GeoJsonResponse geoJsonSlide = null;
+        AbstractDataCube fc = null;
 
-			if (entry == null) {
-				SimpleException se = new SimpleException("exception.parameterMissing", "entry");
-				throw new CubeExplorerException(se, "exception.rest.slide.syntax");
-			}
+        try {
+            initService(logLevel);
 
-			// Lecture du fichier 
-			CubeExplorer ce = new CubeExplorer(workspace + "/" + entry);
-			fc = ce.getCube();
+            if (entry == null) {
+                SimpleException se = new SimpleException("exception.parameterMissing", "entry");
+                throw new CubeExplorerException(se, "exception.rest.slide.syntax");
+            }
 
-			JSONObject properties = fc.getSlide(posZ, metadata);
-			properties.put("fileType", fc.getType().toString());
-			
-			// Format json response
-			geoJsonSlide = new GeoJsonResponse(1, posZ, properties);
-			response.put("response", geoJsonSlide.getGeoJson());
+            // read file
+            CubeExplorer ce = new CubeExplorer(workspace + "/" + entry);
+            fc = ce.getCube();
 
-			fc.close();
-		} catch (SimpleException se) {
-			status = HttpStatus.BAD_REQUEST;
-			String message = se.getMessages().toString();
-			response.put("message", message);
-			// response.put("messageHtml", Text2Html.replace(message));
-		} catch (Exception e) {
-			status = HttpStatus.INTERNAL_SERVER_ERROR;
-			String message = e.getMessage();
-			response.put("message", message);
-			// response.put("messageHtml", Text2Html.replace(message));
-		} finally {
-			if (fc != null)
-				fc.close();
-		}
+            JSONObject properties = fc.getSlide(posZ, metadata);
+            properties.put("fileType", fc.getType().toString());
 
-		response.put("status", status.name());
-		return new ResponseEntity<String>(response.toString(), status);
-	}
+            // Format json response
+            geoJsonSlide = new GeoJsonResponse(1, posZ, properties);
+            response.put("response", geoJsonSlide.getGeoJson());
 
-	@RequestMapping(value = "/spectrum", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> getSpectrum(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
-			@QueryParam("posX") int posX, @QueryParam("posY") int posY, @QueryParam("logLevel") String logLevel) {
+            fc.close();
+        }
+        catch (SimpleException se) {
+            status = HttpStatus.BAD_REQUEST;
+            String message = se.getMessages().toString();
+            response.put("message", message);
+            // response.put("messageHtml", Text2Html.replace(message));
+        }
+        catch (Exception e) {
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
+            String message = e.getMessage();
+            response.put("message", message);
+            // response.put("messageHtml", Text2Html.replace(message));
+        }
+        finally {
+            if (fc != null) fc.close();
+        }
 
-		// Initialise un logger (voir conf/log4j2.xml).
-		LOGREST.info("Call getFitsSpectrum({}, {}, {}, {})", entry, metadata, posX, posY);
+        response.put("status", status.name());
+        return new ResponseEntity<String>(response.toString(), status);
+    }
 
-		JSONObject response = new JSONObject();
-		HttpStatus status = HttpStatus.OK;
+    @RequestMapping(value = "/spectrum", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> getSpectrum(@QueryParam("entry") String entry,
+        @QueryParam("metadata") String metadata, @QueryParam("posX") int posX, @QueryParam("posY") int posY,
+        @QueryParam("logLevel") String logLevel) {
 
-		GeoJsonResponse geoJsonSpectrum = null;
-		AbstractDataCube fc = null;
+        // Initialize logger (voir conf/log4j2.xml).
+        LOGREST.info("Call getFitsSpectrum({}, {}, {}, {})", entry, metadata, posX, posY);
 
-		try {
-			initService(logLevel);
+        JSONObject response = new JSONObject();
+        HttpStatus status = HttpStatus.OK;
 
-			if (entry == null) {
-				SimpleException se = new SimpleException("exception.parameterMissing", "entry");
-				throw new CubeExplorerException(se, "exception.rest.spectrum.syntax");
-			}
+        GeoJsonResponse geoJsonSpectrum = null;
+        AbstractDataCube fc = null;
 
-			// Lecture du fichier 
-			CubeExplorer ce = new CubeExplorer(workspace + "/" + entry);
-			fc = ce.getCube();
+        try {
+            initService(logLevel);
 
-			JSONObject properties = fc.getSpectrum(posX, posY, metadata);
-			properties.put("fileType", fc.getType().toString());
-			
-			// Format json response
-			geoJsonSpectrum = new GeoJsonResponse(posX, posY, properties);
-			response.put("response", geoJsonSpectrum.getGeoJson());
+            if (entry == null) {
+                SimpleException se = new SimpleException("exception.parameterMissing", "entry");
+                throw new CubeExplorerException(se, "exception.rest.spectrum.syntax");
+            }
 
-			fc.close();
-		} catch (SimpleException se) {
-			status = HttpStatus.BAD_REQUEST;
-			String message = se.getMessages().toString();
-			response.put("message", message);
-			// response.put("messageHtml", Text2Html.replace(message));
-		} catch (Exception e) {
-			status = HttpStatus.INTERNAL_SERVER_ERROR;
-			String message = e.getMessage();
-			response.put("message", message);
-			// response.put("messageHtml", Text2Html.replace(message));
-		} finally {
-			if (fc != null)
-				fc.close();
-		}
+            // read file
+            CubeExplorer ce = new CubeExplorer(workspace + "/" + entry);
+            fc = ce.getCube();
 
-		response.put("status", status.name());
-		return new ResponseEntity<String>(response.toString(), status);
-	}
+            JSONObject properties = fc.getSpectrum(posX, posY, metadata);
+            properties.put("fileType", fc.getType().toString());
+
+            // Format json response
+            geoJsonSpectrum = new GeoJsonResponse(posX, posY, properties);
+            response.put("response", geoJsonSpectrum.getGeoJson());
+
+            fc.close();
+        }
+        catch (SimpleException se) {
+            status = HttpStatus.BAD_REQUEST;
+            String message = se.getMessages().toString();
+            response.put("message", message);
+            // response.put("messageHtml", Text2Html.replace(message));
+        }
+        catch (Exception e) {
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
+            String message = e.getMessage();
+            response.put("message", message);
+            // response.put("messageHtml", Text2Html.replace(message));
+        }
+        finally {
+            if (fc != null) fc.close();
+        }
+
+        response.put("status", status.name());
+        return new ResponseEntity<String>(response.toString(), status);
+    }
 
 }
