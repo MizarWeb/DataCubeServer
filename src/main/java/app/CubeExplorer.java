@@ -45,7 +45,6 @@ public class CubeExplorer {
 
     // Initialise un logger (voir conf/log4j2.xml).
     private static final Logger LOGGER = LogManager.getLogger("cubeExplorer");
-
     static private Properties properties = null;
     private AbstractDataCube cube = null;
 
@@ -238,24 +237,25 @@ public class CubeExplorer {
 
             // toutes les metadata
             JSONArray metadata = fc.getHeader().getMetadata();
-            LOGGER.trace(metadata.toString());
+            LOGGER.debug(metadata.toString());
 
             // Recherche specific de metadata sur le hdu 1
             JSONArray hduMetadata = fc.getHeader().getMetadata().optJSONArray(1);
             String keyPattern = "EXTNAME|NAXIS3|CRVAL3|CDELT3|CTYPE3";
-            LOGGER.trace(fc.getHeader().getMetadata(hduMetadata, keyPattern).toString());
+            LOGGER.debug(fc.getHeader().getMetadata(hduMetadata, keyPattern).toString());
 
             // Recherche specific de metadata sur le hdu contenant l'image
             keyPattern = "EXTNAME|BITPIX|NAXIS.$|CRPIX3$|CRVAL3$|CDELT3$|CTYP3$";
-            LOGGER.trace(fc.getHeader().getMetadata(hduMetadata, keyPattern).toString());
+            LOGGER.debug(fc.getHeader().getMetadata(hduMetadata, keyPattern).toString());
 
             // Recherche d'une image
             keyPattern = "^NAXIS.$|^CDELT.$|^CTYP3$";
             JSONObject slide = fc.getSlide(10, keyPattern);
-            LOGGER.trace(slide);
+            LOGGER.debug(slide);
             GeoJsonResponse geoJsonSlide = new GeoJsonResponse(1, 10, slide);
-
-            File fos = new File("D:\\temp\\cubeExplorer\\" + fc.getType() + "_slide_" + fc.getFitsFile() + ".json");
+            
+            String workspace = CubeExplorer.getProperty("workspace_cube", null);
+            File fos = new File(workspace + fc.getType() + "_slide_" + fc.getFitsFile() + ".json");
             FileOutputStream out = new FileOutputStream(fos);
             out.write(geoJsonSlide.getGeoJson().toString(2).getBytes());
             out.close();
@@ -263,10 +263,9 @@ public class CubeExplorer {
             // Recherche d'un spectre
             keyPattern = "NAXIS3";
             JSONObject spectre = fc.getSpectrum(15, 15, keyPattern);
-            LOGGER.trace(spectre);
             GeoJsonResponse geoJsonSpectre = new GeoJsonResponse(15, 15, spectre);
 
-            fos = new File("D:\\temp\\cubeExplorer\\" + fc.getType() + "_spectre_" + fc.getFitsFile() + ".json");
+            fos = new File(workspace + fc.getType() + "_spectre_" + fc.getFitsFile() + ".json");
             out = new FileOutputStream(fos);
             out.write(geoJsonSpectre.getGeoJson().toString(2).getBytes());
             out.close();

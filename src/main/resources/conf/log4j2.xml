@@ -5,28 +5,24 @@
       <PatternLayout pattern="%d %-5p [%t] %m%n"/>
     </Console>
     
-    <File name="LOG_FILE" fileName="cubeExplorer.log" append="false">
+    <File name="LOG_FILE" fileName="cubeExplorer.log" append="true">
       <PatternLayout pattern="%d %-5p [%t] %m%n"/>
     </File>
-
-    <Async name="ASYNC">
-      <AppenderRef ref="LOG_FILE"/>
-      <AppenderRef ref="CONSOLE"/>
-    </Async>
+   
   </Appenders>
     
   <Loggers>
-    <Logger name="org.apache.log4j.xml" level="info" additivity="false">
-      <AppenderRef ref="CONSOLE"/>
+    <Logger name="org.apache.log4j.xml" level="TRACE" additivity="false">
+      <AppenderRef ref="LOG_FILE"/>
     </Logger>
-    <Logger name="cubeExplorer" level="info" additivity="false">
-      <AppenderRef ref="CONSOLE"/>
+    <Logger name="cubeExplorer" level="TRACE" additivity="false">
+      <AppenderRef ref="LOG_FILE"/>
     </Logger>
-    <Logger name="restServices" level="info" additivity="false">
-      <AppenderRef ref="CONSOLE"/>
+    <Logger name="RestServices" level="TRACE" additivity="false">
+      <AppenderRef ref="LOG_FILE"/>
     </Logger>
-    <Root level="error">
-      <AppenderRef ref="ASYNC"/>
+    <Root level="all">
+      <AppenderRef ref="LOG_FILE"/>
     </Root>
   </Loggers>
 </Configuration>

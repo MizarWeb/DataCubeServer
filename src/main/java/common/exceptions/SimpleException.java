@@ -23,7 +23,7 @@ public class SimpleException extends Exception {
     // Mémorise l'identifant du message d'erreur
     private String identMessage = null;
     // Mémorise le message
-    private static ArrayList<String> messages = new ArrayList<String>();;
+    private static ArrayList<String> messages = new ArrayList<String>();
 
     /**
      * Constructeur
@@ -112,10 +112,12 @@ public class SimpleException extends Exception {
         Throwable cause = this;
         if ((cause = cause.getCause()) != null) {
             if (cause instanceof SQLException) {
+            	messages.clear();
                 getAllMessages((SQLException) cause);
             }
             else {
                 try {
+                	messages.clear();
                     ((SimpleException) cause).getAllMessages();
                 }
                 catch (ClassCastException cce) {

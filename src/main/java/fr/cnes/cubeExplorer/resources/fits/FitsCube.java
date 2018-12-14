@@ -37,7 +37,7 @@ public class FitsCube extends AbstractDataCube {
     public FitsCube(CubeExplorer ce, String filename) throws CubeExplorerException {
         super(ce, CubeType.FITS);
 
-        logger.trace("NEW FitsCube({})", filename);
+        logger.info("NEW FitsCube({})", filename);
 
         this.filename = filename;
 
@@ -65,7 +65,7 @@ public class FitsCube extends AbstractDataCube {
     private Fits readFits(String filename) throws CubeExplorerException {
         Fits fits = null;
 
-        logger.trace("ENTER readFits({})", filename);
+        logger.info("ENTER readFits({})", filename);
 
         try {
             // get the file path
@@ -92,6 +92,7 @@ public class FitsCube extends AbstractDataCube {
         int indexHeader = ((FitsHeader) getHeader()).getIndexHeader();
 
         JSONArray md = getHeader().getMetadata().getJSONArray(indexHeader);
+        logger.info("ENTER metadata({})", md);
 
         // Récupération des dimensions
         properties.put("dimensions", getHeader().getDimensions());
@@ -103,6 +104,16 @@ public class FitsCube extends AbstractDataCube {
         else {
             // toutes les metadata
             properties.put("metadata", getHeader().getMetadata(md));
+            
+            //TODO bouchon description
+            JSONObject localisation = new JSONObject();
+            localisation.put("name", "m31");
+            localisation.put("constellation", "andromeda");
+            JSONObject object_type = new JSONObject();
+            object_type.put("class", "star");
+            
+            properties.put("localisation", localisation);
+            properties.put("object_type", object_type);
         }
         return properties;
     }
@@ -178,7 +189,7 @@ public class FitsCube extends AbstractDataCube {
         JSONArray metadata = new JSONArray();
         JSONObject spectrum = new JSONObject();
 
-        logger.trace("ENTER getSpectrum({}, {}, {})", posX, posY, pattern);
+        logger.info("ENTER getSpectrum({}, {}, {})", posX, posY, pattern);
 
         // Lecture des données du fichier fits
         try {

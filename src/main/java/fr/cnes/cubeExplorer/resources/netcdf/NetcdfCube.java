@@ -89,6 +89,16 @@ public class NetcdfCube extends AbstractDataCube {
 		} else {
 			// toutes les metadata
 			properties.put("metadata", getHeader().getMetadata(md));
+			
+			//TODO bouchon description
+            JSONObject localisation = new JSONObject();
+            localisation.put("name", "m31");
+            localisation.put("constellation", "andromeda");
+            JSONObject object_type = new JSONObject();
+            object_type.put("class", "star");
+            
+            properties.put("localisation", localisation);
+            properties.put("object_type", object_type);
 		}
 		return properties;
 	}

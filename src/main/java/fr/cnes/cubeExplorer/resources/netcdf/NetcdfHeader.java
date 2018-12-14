@@ -36,7 +36,7 @@ public class NetcdfHeader extends AbstractDataCubeHeader {
     public NetcdfHeader(CubeExplorer ce, NetcdfCube cube) throws CubeExplorerException {
         super(ce);
 
-        logger.trace("NEW NetcdfHeader({})", cube);
+        logger.info("NEW NetcdfHeader({})", cube);
 
         this.cube = cube;
         if (this.cube == null || this.cube.getNcfile() == null) {
@@ -57,7 +57,7 @@ public class NetcdfHeader extends AbstractDataCubeHeader {
     private JSONArray parseMetadata(List<Variable> variables) {
         JSONArray result = new JSONArray();
 
-        logger.trace("ENTER retrieveMetadata()");
+        logger.info("ENTER retrieveMetadata()");
 
         for (Variable variable : variables) {
             JSONArray jsonCard = new JSONArray();
@@ -86,7 +86,7 @@ public class NetcdfHeader extends AbstractDataCubeHeader {
     }
 
     private void readNetcdfHeader(NetcdfFile ncfile) throws CubeExplorerException {
-        logger.trace("ENTER readNetcdfHeader()");
+        logger.info("ENTER readNetcdfHeader()");
         try {
             // Get the latitude and longitude Variables.
             Variable lonVar = ncfile.findVariable("lon");

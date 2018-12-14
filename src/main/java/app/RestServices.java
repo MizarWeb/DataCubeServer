@@ -2,31 +2,43 @@ package app;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
+import java.lang.reflect.Array;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.ws.rs.QueryParam;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.fasterxml.jackson.annotation.JsonValue;
 
 import common.exceptions.CubeExplorerException;
 import common.exceptions.Messages;
 import common.exceptions.SimpleException;
 import fr.cnes.cubeExplorer.resources.AbstractDataCube;
-import fr.cnes.cubeExplorer.resources.GeoJsonResponse;
+import fr.cnes.cubeExplorer.resources.GeoJsonResponse;;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -36,7 +48,7 @@ import fr.cnes.cubeExplorer.resources.GeoJsonResponse;
 public class RestServices {
 
     // Initialize logger (see conf/log4j2.xml).
-    final Logger LOGREST = LogManager.getLogger("restServices");
+    final Logger LOGREST = LoggerFactory.getLogger(RestServices.class);
 
     String workspace = null;
 
@@ -51,7 +63,7 @@ public class RestServices {
         // Log level
         if (logLevel != null && Level.getLevel((logLevel = logLevel.toUpperCase())) != null) {
             Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.getLevel(logLevel));
-            LOGREST.trace("LEVEL : {}", logLevel);
+            LOGREST.info("LEVEL : {}", logLevel);
         }
 
         // Properties
@@ -65,37 +77,25 @@ public class RestServices {
     @RequestMapping(value = "/listFiles", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getListFiles(@QueryParam("logLlevel") String logLevel) {
 
-        LOGREST.info("Call getListFiles()");
+        
 
         JSONObject response = new JSONObject();
+        JSONArray files;
         HttpStatus status = HttpStatus.OK;
 
         try {
-            initService(logLevel);
-
-            File dir = null;
-
-            // create new file
-            dir = new File(workspace);
-
-            // create new filter
-            // Filter to fits or netCdf files
-            FilenameFilter filter = new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return name.endsWith(".fits") || name.endsWith(".nc");
-                }
-            };
-
-            // array of files and directory
-            List<String> dirList = new ArrayList<String>(Arrays.asList(dir.list(filter)));
-            dirList.add("testMizar");
-            response.put("response", dirList.toArray());
+        	logLevel = (logLevel==null)?"INFO":logLevel;
+            initService(logLevel);         
+            LOGREST.info("Call getListFiles()");
+            files = getAllFiles();
+            response.put("response", files.toString());
+           
         }
         catch (Exception e) {
             status = HttpStatus.INTERNAL_SERVER_ERROR;
             String message = e.getMessage();
             response.put("message", message);
+            LOGREST.error("getListFiles : {}", message);
             // response.put("messageHtml", Text2Html.replace(message));
         }
 
@@ -103,11 +103,31 @@ public class RestServices {
         return new ResponseEntity<String>(response.toString(), status);
     }
 
+    private JSONArray getAllFiles() {
+    	JSONArray response = new JSONArray();
+    	File dir = null;
+        dir = new File(workspace+"/public/");
+
+        // create new filter
+        // Filter to fits or netCdf files
+        FilenameFilter filter = new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.endsWith(".fits") || name.endsWith(".nc");
+            }
+        };
+    	 // array of files and directory
+        List<String> dirList = new ArrayList<String>(Arrays.asList(dir.list(filter)));     
+        response.put(0,  dirList.toArray());
+        dir = new File(workspace+"/private/");
+        List<String> dirList2 = new ArrayList<String>(Arrays.asList(dir.list(filter)));          
+        response.put(1,  dirList2.toArray());
+    	return response;
+    }
+    
     @RequestMapping(value = "/header", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getHeader(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
         @QueryParam("logLevel") String logLevel) {
-
-        LOGREST.info("Call getHeader({}, {})", entry, metadata);
 
         JSONObject response = new JSONObject();
         HttpStatus status = HttpStatus.OK;
@@ -116,18 +136,37 @@ public class RestServices {
         AbstractDataCube adc = null;
 
         try {
+        	logLevel = (logLevel==null)?"INFO":logLevel;
             initService(logLevel);
+            LOGREST.info("Call getHeader({}, {})", entry, metadata);
 
             if (entry == null) {
                 SimpleException se = new SimpleException("exception.parameterMissing", "entry");
                 throw new CubeExplorerException(se, "exception.rest.header.syntax");
             }
-
-            // read file
-            CubeExplorer ce = new CubeExplorer(workspace + "/" + entry);
+           
+            File dir = new File(workspace+"/public/");
+             FilenameFilter filter = new FilenameFilter() {
+	            @Override
+	            public boolean accept(File dir, String name) {
+	                return name.endsWith(".fits") || name.endsWith(".nc");
+	            }
+             };
+			List<String> dirList = new ArrayList<String>(Arrays.asList(dir.list(filter)));  
+			CubeExplorer ce;
+           if(dirList.contains(entry)) {
+            	// read file
+                ce = new CubeExplorer(workspace + "/public/" + entry);
+            }else {
+            	ce = new CubeExplorer(workspace + "/private/" + entry);
+            }
+            
+            LOGREST.info("Call getCube()");
             adc = ce.getCube();
-
+            //LOGREST.info(adc.getCubeExplorer());
+            
             JSONObject properties = adc.getHeader(metadata);
+            //LOGREST.info(properties);
             properties.put("fileType", adc.getType().toString());
 
             // Format json response
@@ -138,15 +177,20 @@ public class RestServices {
         }
         catch (SimpleException se) {
             status = HttpStatus.BAD_REQUEST;
-            String message = se.getMessages().toString();
+            ArrayList<String> listMessage = se.getMessages();
+            String message="";
+            for (String s : listMessage)
+            {
+            	message += s + " ";
+            }
             response.put("message", message);
-            // response.put("messageHtml", Text2Html.replace(message));
+            LOGREST.error("getHeader : {}", message);
         }
         catch (Exception e) {
             status = HttpStatus.INTERNAL_SERVER_ERROR;
             String message = e.getMessage();
             response.put("message", message);
-            // response.put("messageHtml", Text2Html.replace(message));
+            LOGREST.error("getHeader : {}", message);
         }
         finally {
             if (adc != null) adc.close();
@@ -178,8 +222,6 @@ public class RestServices {
     public ResponseEntity<String> getSlide(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
         @QueryParam("posZ") int posZ, @QueryParam("logLevel") String logLevel) {
 
-        LOGREST.info("Call getFitsSlide({}, {}, {})", entry, metadata, posZ);
-
         JSONObject response = new JSONObject();
         HttpStatus status = HttpStatus.OK;
 
@@ -187,15 +229,32 @@ public class RestServices {
         AbstractDataCube fc = null;
 
         try {
+        	logLevel = (logLevel==null)?"INFO":logLevel;
             initService(logLevel);
+            LOGREST.info("Call getFitsSlide({}, {}, {})", entry, metadata, posZ);
+
 
             if (entry == null) {
                 SimpleException se = new SimpleException("exception.parameterMissing", "entry");
+                LOGREST.error("getSlide : {}", se.getMessage());
                 throw new CubeExplorerException(se, "exception.rest.slide.syntax");
             }
 
-            // read file
-            CubeExplorer ce = new CubeExplorer(workspace + "/" + entry);
+            File dir = new File(workspace+"/public/");
+            FilenameFilter filter = new FilenameFilter() {
+	            @Override
+	            public boolean accept(File dir, String name) {
+	                return name.endsWith(".fits") || name.endsWith(".nc");
+	            }
+            };
+			List<String> dirList = new ArrayList<String>(Arrays.asList(dir.list(filter)));  
+            CubeExplorer ce;
+            if(dirList.contains(entry)) {
+             	// read file
+                 ce = new CubeExplorer(workspace + "/public/" + entry);
+             }else {
+             	ce = new CubeExplorer(workspace + "/private/" + entry);
+             }
             fc = ce.getCube();
 
             JSONObject properties = fc.getSlide(posZ, metadata);
@@ -209,15 +268,20 @@ public class RestServices {
         }
         catch (SimpleException se) {
             status = HttpStatus.BAD_REQUEST;
-            String message = se.getMessages().toString();
+            ArrayList<String> listMessage = se.getMessages();
+            String message="";
+            for (String s : listMessage)
+            {
+            	message += s + " ";
+            }
             response.put("message", message);
-            // response.put("messageHtml", Text2Html.replace(message));
+            LOGREST.error("getSlide : {}", message); 
         }
         catch (Exception e) {
             status = HttpStatus.INTERNAL_SERVER_ERROR;
             String message = e.getMessage();
             response.put("message", message);
-            // response.put("messageHtml", Text2Html.replace(message));
+            LOGREST.error("getSlide : {}", message); 
         }
         finally {
             if (fc != null) fc.close();
@@ -227,14 +291,22 @@ public class RestServices {
         return new ResponseEntity<String>(response.toString(), status);
     }
 
+    /**
+     * Get a spectre from a plot
+     * 
+     * @param entry Name of Fits file
+     * @param metadata Pattern of metadata to retrieve
+     * @param posX Plot X from datacube
+     * @param posY Plot Y from datacube
+     * @return A slide
+     * @throws SimpleException
+     */
     @RequestMapping(value = "/spectrum", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getSpectrum(@QueryParam("entry") String entry,
         @QueryParam("metadata") String metadata, @QueryParam("posX") int posX, @QueryParam("posY") int posY,
         @QueryParam("logLevel") String logLevel) {
 
-        // Initialize logger (voir conf/log4j2.xml).
-        LOGREST.info("Call getFitsSpectrum({}, {}, {}, {})", entry, metadata, posX, posY);
-
+        
         JSONObject response = new JSONObject();
         HttpStatus status = HttpStatus.OK;
 
@@ -242,15 +314,32 @@ public class RestServices {
         AbstractDataCube fc = null;
 
         try {
+        	logLevel = (logLevel==null)?"INFO":logLevel;
             initService(logLevel);
+            // Initialize logger (voir conf/log4j2.xml).
+            LOGREST.info("Call getFitsSpectrum({}, {}, {}, {})", entry, metadata, posX, posY);
 
             if (entry == null) {
                 SimpleException se = new SimpleException("exception.parameterMissing", "entry");
+                LOGREST.error("getSpectrum : {}", se.getMessage()); 
                 throw new CubeExplorerException(se, "exception.rest.spectrum.syntax");
             }
-
-            // read file
-            CubeExplorer ce = new CubeExplorer(workspace + "/" + entry);
+            
+            File dir = new File(workspace+"/public/");
+            FilenameFilter filter = new FilenameFilter() {
+	            @Override
+	            public boolean accept(File dir, String name) {
+	                return name.endsWith(".fits") || name.endsWith(".nc");
+	            }
+            };
+        	List<String> dirList = new ArrayList<String>(Arrays.asList(dir.list(filter)));  
+            CubeExplorer ce;
+            if(dirList.contains(entry)) {
+             	// read file
+                 ce = new CubeExplorer(workspace + "/public/" + entry);
+             }else {
+             	ce = new CubeExplorer(workspace + "/private/" + entry);
+             }
             fc = ce.getCube();
 
             JSONObject properties = fc.getSpectrum(posX, posY, metadata);
@@ -264,15 +353,20 @@ public class RestServices {
         }
         catch (SimpleException se) {
             status = HttpStatus.BAD_REQUEST;
-            String message = se.getMessages().toString();
+            ArrayList<String> listMessage = se.getMessages();
+            String message="";
+            for (String s : listMessage)
+            {
+            	message += s + " ";
+            }
             response.put("message", message);
-            // response.put("messageHtml", Text2Html.replace(message));
+            LOGREST.error("getSpectrum : {}", message); 
         }
         catch (Exception e) {
             status = HttpStatus.INTERNAL_SERVER_ERROR;
             String message = e.getMessage();
             response.put("message", message);
-            // response.put("messageHtml", Text2Html.replace(message));
+            LOGREST.error("getSpectrum : {}", message); 
         }
         finally {
             if (fc != null) fc.close();
@@ -281,5 +375,66 @@ public class RestServices {
         response.put("status", status.name());
         return new ResponseEntity<String>(response.toString(), status);
     }
+    
+    /**
+     * User identification
+     * 
+     * @param username username
+     * @param password password
+     * @return yes or non
+     * @throws SimpleException
+     */
+    @RequestMapping(value = "/identification", method = RequestMethod.POST, produces = "application/json", consumes = "application/json")
+    @ResponseBody
+    public ResponseEntity<String> identification(@RequestBody UserCube user) {
+    	
+    	HttpStatus status = HttpStatus.OK;
+        Boolean identification = false;
+        JSONObject response = new JSONObject();
+        try {
+        	String logLevel = "INFO";
+        	 initService(logLevel);
+             LOGREST.info("Call identification()");
+
+        	 workspace = CubeExplorer.getProperty("workspace", ".");    		       	
+        	
+			String usernameKnown = CubeExplorer.getProperty("username", null);
+			String passwordKnown = CubeExplorer.getProperty("password", null);
+			
+			String usernamePublic = CubeExplorer.getProperty("username_public", null);
+			String passwordPublic = CubeExplorer.getProperty("password_public", null);
+			
+			if((usernameKnown.equals(user.getUsername()) && passwordKnown.equals(user.getPassword())) 
+					|| (usernamePublic.equals(user.getUsername()) && passwordPublic.equals(user.getPassword()))
+					) {
+				identification = true;
+				response.put("message", identification);
+				if(usernameKnown=="admin") {
+					response.put("role",  CubeExplorer.getProperty("data_roles_admin", null));
+				}else {
+					response.put("role",  CubeExplorer.getProperty("data_roles_public", null));
+				}
+			}
+			else {
+				status = HttpStatus.FORBIDDEN;
+				identification = false;
+				response.put("message", identification);
+			}
+		} catch (CubeExplorerException e) {
+			status = HttpStatus.INTERNAL_SERVER_ERROR;
+			ArrayList<String> listMessage = e.getMessages();
+	        String message="";
+	        for (String s : listMessage)
+	        {
+	        	message += s + " ";
+	        }
+	        response.put("message", message);
+            LOGREST.error("identification : {}", message); 
+
+		}
+
+        return new ResponseEntity<String>(response.toString(), status);
+    }
+
 
 }

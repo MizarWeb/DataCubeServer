@@ -86,13 +86,12 @@ public class FitsHeader extends AbstractDataCubeHeader {
     private JSONArray parseMetadata(Header header) {
         JSONArray result = new JSONArray();
         Cursor<String, HeaderCard> cursor = header.iterator();
-
         logger.trace("ENTER retrieveMetadata({})", header.toString());
+        
 
         while (cursor.hasNext()) {
-            JSONArray jsonCard = new JSONArray();
-
-            HeaderCard headerCard = cursor.next();
+        	HeaderCard headerCard = cursor.next();
+            JSONArray jsonCard = new JSONArray();            
             String key = headerCard.getKey();
             String val = headerCard.getValue();
             String comment = headerCard.getComment();
@@ -108,9 +107,11 @@ public class FitsHeader extends AbstractDataCubeHeader {
                         card = (JSONArray) result.opt(result.length() - 1);
                         prevComment = (String) card.opt(2);
                         prevComment = StringInContinue(prevComment) + comment;
+                        //System.out.println("prevComment: "+prevComment);
                         card.put(2, prevComment);
                     }
                     catch (JSONException e) {
+                    	logger.trace("JSONException({})", e.getMessage());
                         card.put(2, comment);
                     }
                     break;
@@ -122,11 +123,13 @@ public class FitsHeader extends AbstractDataCubeHeader {
                     String prevComment = (String) card.opt(2);
                     prevValue = StringInContinue(prevValue) + val;
                     prevComment = StringInContinue(prevComment) + comment;
+                    //System.out.println("prevValue: "+prevValue+", prevComment: "+prevComment);
                     card.put(1, prevValue);
                     card.put(2, prevComment);
                     break;
                 }
                 default:
+                	//System.err.println("key: "+key+", val: "+val+", comment: "+comment);
                     // Nouvelle valeur
                     jsonCard.put(key);
                     jsonCard.put(val);
@@ -138,6 +141,7 @@ public class FitsHeader extends AbstractDataCubeHeader {
                 }
             }
         }
+       
         return result;
     }
 
@@ -192,17 +196,17 @@ public class FitsHeader extends AbstractDataCubeHeader {
                     vX = getValue(hduMetadata, "CRPIX1");
                     vY = getValue(hduMetadata, "CRPIX2");
                     vZ = getValue(hduMetadata, "CRPIX3");
-                    jsonDimensions.put("refX", (vX == null) ? 0.0 : Float.parseFloat(vX));
-                    jsonDimensions.put("refY", (vY == null) ? 0.0 : Float.parseFloat(vY));
-                    jsonDimensions.put("refZ", (vZ == null) ? 0.0 : Float.parseFloat(vZ));
+                    jsonDimensions.put("refX", (vX == null) ? 0.0 : vX);
+                    jsonDimensions.put("refY", (vY == null) ? 0.0 : vY);
+                    jsonDimensions.put("refZ", (vZ == null) ? 0.0 : vZ);
 
                     // Get coordinate values at reference point
                     vX = getValue(hduMetadata, "CRVAL1");
                     vY = getValue(hduMetadata, "CRVAL2");
                     vZ = getValue(hduMetadata, "CRVAL3");
-                    jsonDimensions.put("refLon", (vX == null) ? 0.0 : Float.parseFloat(vX));
-                    jsonDimensions.put("refLat", (vY == null) ? 0.0 : Float.parseFloat(vY));
-                    jsonDimensions.put("refLevel", (vZ == null) ? 0.0 : Float.parseFloat(vZ));
+                    jsonDimensions.put("refLon", (vX == null) ? 0.0 : vX);
+                    jsonDimensions.put("refLat", (vY == null) ? 0.0 : vY);
+                    jsonDimensions.put("refLevel", (vZ == null) ? 0.0 : vZ);
 
                     // Get coordinate increments at reference point
                     vX = getValue(hduMetadata, "CDELT1");
@@ -226,9 +230,11 @@ public class FitsHeader extends AbstractDataCubeHeader {
             logger.trace("Header done !");
         }
         catch (FitsException fe) {
+        	System.err.println("error readFitsHeaders : FitsException");	
             throw new CubeExplorerException(fe);
         }
         catch (IOException ioe) {
+        	System.err.println("error readFitsHeaders : IOException");
             throw new CubeExplorerException(ioe);
         }
     }

@@ -42,7 +42,7 @@ public abstract class AbstractDataCube {
 		this.type = type;
 		this.logger = CubeExplorer.getLogger();
 
-		logger.trace("NEW DataCube()");
+		logger.info("NEW DataCube()");
 	}
 
 	/**

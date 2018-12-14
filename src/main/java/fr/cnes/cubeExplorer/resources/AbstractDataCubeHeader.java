@@ -35,7 +35,7 @@ public abstract class AbstractDataCubeHeader {
 		this.cubeExplorer = ce;
 		this.logger = CubeExplorer.getLogger();
 
-		logger.trace("NEW dataCubeHeader()");
+		logger.info("NEW dataCubeHeader()");
 	}
 
 	/**
