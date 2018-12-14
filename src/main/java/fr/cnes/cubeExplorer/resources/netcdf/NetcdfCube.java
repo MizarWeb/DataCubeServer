@@ -246,6 +246,7 @@ public class NetcdfCube extends AbstractDataCube {
 				this.ncfile = null;
 			}
 		} catch (IOException ioe) {
+			logger.error("IOException {}", ioe.getMessage());
 			// Erreur non bloquante
 			new CubeExplorerException(ioe).printMessages();
 		}
