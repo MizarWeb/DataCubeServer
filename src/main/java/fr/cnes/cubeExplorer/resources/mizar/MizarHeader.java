@@ -30,6 +30,7 @@ public class MizarHeader extends AbstractDataCubeHeader {
 
         this.cube = cube;
         if (this.cube == null || this.cube.getMizar() == null) {
+        	logger.error("exception.file.null");
             throw new CubeExplorerException("exception.file.null");
         }
     }

@@ -66,6 +66,7 @@ public class CubeExplorer {
             this.cube = new MizarCube(this, filename);
         }
         else {
+        	LOGGER.error("exception.file.unknown {}", filename);
             throw new CubeExplorerException("exception.file.unknown", filename);
         }
     }
@@ -141,6 +142,7 @@ public class CubeExplorer {
             }
             catch (Exception e) {
                 properties = null;
+                LOGGER.error("exception.unavailableResource {}", messageFile);
                 throw new CubeExplorerException(e, "exception.unavailableResource", messageFile);
             }
             finally {
@@ -152,6 +154,7 @@ public class CubeExplorer {
                     }
                 }
                 catch (Exception e) {
+                    LOGGER.error("exception.libre {}", e.getMessage());
                     throw new CubeExplorerException(e, "exception.libre");
                 }
             }
@@ -160,6 +163,7 @@ public class CubeExplorer {
         value = properties.getProperty(key);
         if (value == null) {
             if (defaultValue == null) {
+            	LOGGER.error("property not found {}", key);
                 throw new NotFoundException("property " + key);
             }
             else value = defaultValue;
@@ -204,6 +208,7 @@ public class CubeExplorer {
                     LOGGER.info("Level " + entry);
                     Configurator.setAllLevels(LogManager.getRootLogger().getName(), logLevel);
                     if (logLevel == null) {
+                    	LOGGER.error("exception.app.syntax : logLevel is NULL");
                         throw new SimpleException("exception.app.syntax");
                     }
 
@@ -220,6 +225,7 @@ public class CubeExplorer {
                 // Arguments obligatoires
                 if (indMand < nbMandatoryArgs) {
                     if (args[indArg].startsWith("-")) {
+                    	LOGGER.error("exception.app.syntax");
                         throw new SimpleException("exception.app.syntax");
                     }
                     mandatoryArgs[indMand] = args[indArg];
@@ -229,6 +235,7 @@ public class CubeExplorer {
             }
 
             if (indMand != nbMandatoryArgs) {
+            	LOGGER.error("exception.app.syntax");
                 throw new SimpleException("exception.app.syntax");
             }
 
@@ -272,6 +279,7 @@ public class CubeExplorer {
         }
         catch (SimpleException se) {
             if (logLevel.isInRange(Level.DEBUG, Level.TRACE)) {
+            	LOGGER.error(se.getMessage());
                 // Afficher la pile complète si le mode trace ou debug est actif
                 throw se;
             }

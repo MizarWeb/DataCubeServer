@@ -129,6 +129,7 @@ public class FitsCube extends AbstractDataCube {
             int indexHeader = ((FitsHeader) getHeader()).getIndexHeader();
 
             if (indexHeader < 0 || indexHeader >= fits.getNumberOfHDUs()) {
+            	logger.error("exception.outOfBound : indexHeader {} , NumberOfHDUs {}", indexHeader, fits.getNumberOfHDUs());
                 // OutOfBound
                 throw new CubeExplorerException("exception.outOfBound", "Hdu", indexHeader, 0,
                     fits.getNumberOfHDUs() - 1);
@@ -146,6 +147,7 @@ public class FitsCube extends AbstractDataCube {
             int naxis3 = (naxis3Value == null) ? 0 : Integer.parseInt(naxis3Value);
 
             if (posZ < 0 || posZ >= naxis3) {
+            	logger.error("exception.outOfBound : posZ {} , naxis3 {}", posZ, naxis3);
                 // OutOfBound
                 throw new CubeExplorerException("exception.outOfBound", "posZ", posZ, 0, naxis3 - 1);
             }
@@ -176,9 +178,11 @@ public class FitsCube extends AbstractDataCube {
             throw ce;
         }
         catch (FitsException fe) {
+        	logger.error("CubeExplorerException : {} ", fe.getMessage());
             throw new CubeExplorerException(fe);
         }
         catch (IOException ioe) {
+        	logger.error("IOException : {} ", ioe.getMessage());
             throw new CubeExplorerException(ioe);
         }
         return properties;
@@ -196,6 +200,7 @@ public class FitsCube extends AbstractDataCube {
             int indexHeader = ((FitsHeader) getHeader()).getIndexHeader();
 
             if (indexHeader < 0 || indexHeader >= fits.getNumberOfHDUs()) {
+            	logger.error("exception.outOfBound : indexHeader {} , NumberOfHDUs {}", indexHeader, fits.getNumberOfHDUs());
                 // OutOfBound
                 throw new CubeExplorerException("exception.outOfBound", "Hdu", indexHeader, 0,
                     fits.getNumberOfHDUs() - 1);
@@ -213,11 +218,13 @@ public class FitsCube extends AbstractDataCube {
             int naxis3 = (naxis3Value == null) ? 0 : Integer.parseInt(naxis3Value);
 
             if (posX < 0 || posX >= naxis1) {
+            	logger.error("exception.outOfBound : posX {} , naxis1 {}", posX, naxis1);
                 // OutOfBound
                 throw new CubeExplorerException("exception.outOfBound", "posX", posX, 0, naxis1 - 1);
             }
 
             if (posY < 0 || posY >= naxis2) {
+            	logger.error("exception.outOfBound : posY {} , naxis2 {}", posY, naxis2);
                 // OutOfBound
                 throw new CubeExplorerException("exception.outOfBound", "posY", posY, 0, naxis2 - 1);
             }
@@ -245,9 +252,11 @@ public class FitsCube extends AbstractDataCube {
             throw ce;
         }
         catch (FitsException fe) {
+        	logger.error("FitsException : fe {}", fe.getMessage());
             throw new CubeExplorerException(fe);
         }
         catch (IOException ioe) {
+        	logger.error("IOException : ioe {}", ioe.getMessage());
             throw new CubeExplorerException(ioe);
         }
 
@@ -262,6 +271,7 @@ public class FitsCube extends AbstractDataCube {
             int nbrHdu = fits.getNumberOfHDUs();
 
             if (indexHdu < 0 || indexHdu >= nbrHdu) {
+            	logger.error("exception.outOfBound : Hdu {} , nbrHdu {}", indexHdu, nbrHdu);
                 // OutOfBound
                 throw new CubeExplorerException("exception.outOfBound", "Hdu", indexHdu, 0, nbrHdu - 1);
             }
@@ -311,6 +321,7 @@ public class FitsCube extends AbstractDataCube {
                     }
                 }
                 else {
+                	logger.error("exception.fits.WaveNotFound");
                     throw new CubeExplorerException("exception.fits.WaveNotFound");
                 }
             }
@@ -367,9 +378,11 @@ public class FitsCube extends AbstractDataCube {
             logger.trace("Header done !");
         }
         catch (FitsException fe) {
+        	logger.error("FitsException : fe {}", fe.getMessage());
             throw new CubeExplorerException(fe);
         }
         catch (IOException ioe) {
+        	logger.error("IOException : ioe {}", ioe.getMessage());
             throw new CubeExplorerException(ioe);
         }
         return data;
@@ -384,6 +397,7 @@ public class FitsCube extends AbstractDataCube {
             }
         }
         catch (IOException ioe) {
+        	logger.error("IOException : ioe {}", ioe.getMessage());
             // Erreur non bloquante
             new CubeExplorerException(ioe).printMessages();
         }

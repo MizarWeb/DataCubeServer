@@ -68,6 +68,7 @@ public class NetcdfCube extends AbstractDataCube {
 		} catch (IOException ioe) {
 			// free resources
 			close();
+			logger.error("CubeExplorerException {}", ioe.getMessage());
 			throw new CubeExplorerException(ioe);
 		}
 
@@ -120,12 +121,15 @@ public class NetcdfCube extends AbstractDataCube {
 				}
 			}
 
-			if (cubeVar == null)
+			if (cubeVar == null) {
+				logger.error("exception.notFound");
 				throw new CubeExplorerException("exception.notFound", "datacube");
+			}
 
 			int[] cubeShape = cubeVar.getShape();
 
 			if (posZ < 0 || posZ >= cubeShape[0]) {
+				logger.error("exception.outOfBound posZ");
 				// OutOfBound
 				throw new CubeExplorerException("exception.outOfBound", "posZ", posZ, 0, cubeShape[0] - 1);
 			}
@@ -160,6 +164,7 @@ public class NetcdfCube extends AbstractDataCube {
 		} catch (CubeExplorerException ce) {
 			throw ce;
 		} catch (Exception exc) {
+			logger.error("CubeExplorerException {}", exc.getMessage());
 			throw new CubeExplorerException(exc);
 		}
 		return properties;
@@ -182,17 +187,20 @@ public class NetcdfCube extends AbstractDataCube {
 				}
 			}
 
-			if (cubeVar == null)
+			if (cubeVar == null) {
+				logger.error("exception.notFound");
 				throw new CubeExplorerException("exception.notFound", "datacube");
-
+			}
 			int[] cubeShape = cubeVar.getShape();
 
 			if (posX < 0 || posX >= cubeShape[2]) {
+				logger.error("exception.outOfBound posX");
 				// OutOfBound
 				throw new CubeExplorerException("exception.outOfBound", "posX", posX, 0, cubeShape[2] - 1);
 			}
 
 			if (posY < 0 || posY >= cubeShape[1]) {
+				logger.error("exception.outOfBound posY");
 				// OutOfBound
 				throw new CubeExplorerException("exception.outOfBound", "posY", posY, 0, cubeShape[1] - 1);
 			}
@@ -223,6 +231,7 @@ public class NetcdfCube extends AbstractDataCube {
 		} catch (CubeExplorerException ce) {
 			throw ce;
 		} catch (Exception exc) {
+			logger.error("CubeExplorerException {}", exc.getMessage());
 			throw new CubeExplorerException(exc);
 		}
 		return properties;

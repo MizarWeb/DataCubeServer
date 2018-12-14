@@ -39,6 +39,7 @@ public class MizarCube extends AbstractDataCube {
             this.url = new URL("http://demonstrator.telespazio.com/wmspub");
         }
         catch (MalformedURLException mue) {
+        	logger.error("MalformedURLException {}", mue.getMessage());
             throw new CubeExplorerException(mue);
         }
 

@@ -142,6 +142,7 @@ public class RestServices {
 
             if (entry == null) {
                 SimpleException se = new SimpleException("exception.parameterMissing", "entry");
+                LOGREST.info("exception.rest.header.syntax {}", se.getMessage());
                 throw new CubeExplorerException(se, "exception.rest.header.syntax");
             }
            

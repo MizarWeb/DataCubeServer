@@ -40,6 +40,7 @@ public class NetcdfHeader extends AbstractDataCubeHeader {
 
         this.cube = cube;
         if (this.cube == null || this.cube.getNcfile() == null) {
+        	logger.error("exception.file.null");
             throw new CubeExplorerException("exception.file.null");
         }
 
@@ -143,6 +144,7 @@ public class NetcdfHeader extends AbstractDataCubeHeader {
             jsonDimensions.put("stepZ", levelStep);
         }
         catch (Exception ioe) {
+        	logger.error("CubeExplorerException {}", ioe.getMessage());
             throw new CubeExplorerException(ioe);
         }
     }

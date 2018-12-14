@@ -46,6 +46,7 @@ public class FitsHeader extends AbstractDataCubeHeader {
         this.indexHeader = 1;
         this.cube = cube;
         if (this.cube == null || this.cube.getFits() == null) {
+        	logger.error("exception.file.null");
             throw new CubeExplorerException("exception.file.null");
         }
 
@@ -230,11 +231,11 @@ public class FitsHeader extends AbstractDataCubeHeader {
             logger.trace("Header done !");
         }
         catch (FitsException fe) {
-        	System.err.println("error readFitsHeaders : FitsException");	
+        	logger.error("error readFitsHeaders : FitsException");
             throw new CubeExplorerException(fe);
         }
         catch (IOException ioe) {
-        	System.err.println("error readFitsHeaders : IOException");
+        	logger.error("error readFitsHeaders : IOException");
             throw new CubeExplorerException(ioe);
         }
     }
