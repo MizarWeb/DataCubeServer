@@ -150,7 +150,7 @@ public abstract class AbstractDataCubeHeader {
 	 */
 	public String getValue(JSONArray metadata, String pattern) throws CubeExplorerException {
 		String result = null;
-
+	
 		if (pattern == null || pattern.length() == 0)
 			return result;
 
@@ -161,7 +161,6 @@ public abstract class AbstractDataCubeHeader {
 		Matcher matcher;
 		while (iter.hasNext()) {
 			JSONArray card = (JSONArray) iter.next();
-
 			matcher = keyPattern.matcher(card.optString(0));
 			if (matcher.find()) {
 				result = card.optString(1);

@@ -134,14 +134,28 @@ public class FitsCube extends AbstractDataCube {
                 throw new CubeExplorerException("exception.outOfBound", "Hdu", indexHeader, 0,
                     fits.getNumberOfHDUs() - 1);
             }
+            
+//            logger.info("fits.getNumberOfHDUs() {}",fits.getNumberOfHDUs());
+//            for (int idxHdu = 0; idxHdu < fits.getNumberOfHDUs(); idxHdu++) {
+//            	//logger.info("idxHdu - NAXIS3 {}",idxHdu);
+//            	JSONArray md = getHeader().getMetadata().getJSONArray(indexHeader);
+//            	 logger.info("getSlide - NAXIS3 {} {}", idxHdu, getHeader().getValue(md, "NAXIS3"));
+//            	if(String.valueOf(getHeader().getValue(md, "NAXIS3"))!="null" && String.valueOf(getHeader().getValue(md, "NAXIS3"))!=null) {
+//            		indexHeader = idxHdu;
+//            		//break;
+//            	}
+//            
+//            }
 
+            logger.info("indexHeader with NAXIS3 {}", indexHeader);
             JSONArray md = getHeader().getMetadata().getJSONArray(indexHeader);
+            //logger.info("md {}", md);
 
             // search axis
             String naxis1Value = getHeader().getValue(md, "NAXIS1");
             String naxis2Value = getHeader().getValue(md, "NAXIS2");
             String naxis3Value = getHeader().getValue(md, "NAXIS3");
-
+            logger.info("naxis3Value {}",naxis3Value);
             int naxis1 = (naxis1Value == null) ? 0 : Integer.parseInt(naxis1Value);
             int naxis2 = (naxis2Value == null) ? 0 : Integer.parseInt(naxis2Value);
             int naxis3 = (naxis3Value == null) ? 0 : Integer.parseInt(naxis3Value);
@@ -154,16 +168,61 @@ public class FitsCube extends AbstractDataCube {
 
             // Copy metadata without comment
             metadata = getHeader().selectMetadata(md, pattern);
-
-            double[][][] cubeFits = ((double[][][]) fits.getHDU(indexHeader).getData().getData());
+            logger.info("indexHeader {}",indexHeader);
+            logger.info("fits.getHDU(indexHeader).getData() {}",fits.getHDU(indexHeader).getData());
+            double[][][] cubeFits = null;
+            float[][][] cubeFitsFloat = null;
+            if(indexHeader==0) {
+            	cubeFitsFloat = (float[][][]) fits.getHDU(indexHeader).getData().getData();
+            }else {
+            	 cubeFits = ((double[][][]) fits.getHDU(indexHeader).getData().getData());
+            }
+           
+            JSONArray tabValues = new JSONArray();
+//            if(indexHeader==0) {
+//                  float valueFloat;                 
+//                  logger.info("naxis1 - naxis2 {} {}",naxis1, naxis2);
+//                  for (int idxNaxis2 = 0; idxNaxis2 < naxis2; idxNaxis2++) {
+//                      JSONArray lineValues = new JSONArray();
+//                      for (int idxNaxis1 = 0; idxNaxis1 < naxis1; idxNaxis1++) {
+//                      	 if(indexHeader==0) {
+//                               valueFloat = cubeFitsFloat[posZ][idxNaxis2][idxNaxis1];
+//                               lineValues.put(valueFloat);
+//                      	 }
+//                      	 tabValues.put(lineValues);
+//                      }
+//                  }
+//            }
+//            else {
+//            	  Double value;
+//                  logger.info("naxis1 - naxis2 {} {}",naxis1, naxis2);
+//                  for (int idxNaxis2 = 0; idxNaxis2 < naxis2; idxNaxis2++) {
+//                      JSONArray lineValues = new JSONArray();
+//                      for (int idxNaxis1 = 0; idxNaxis1 < naxis1; idxNaxis1++) {
+//                          value = cubeFits[posZ][idxNaxis2][idxNaxis1];
+//                          lineValues.put(value.isNaN() ? null : value);                     	 
+//                      }
+//                      tabValues.put(lineValues);
+//                  }
+//            }
+            
 
             Double value;
-            JSONArray tabValues = new JSONArray();
+            float valueFloat;
+            //JSONArray tabValues = new JSONArray();
+            logger.info("naxis1 - naxis2 {} {}",naxis1, naxis2);
             for (int idxNaxis2 = 0; idxNaxis2 < naxis2; idxNaxis2++) {
                 JSONArray lineValues = new JSONArray();
                 for (int idxNaxis1 = 0; idxNaxis1 < naxis1; idxNaxis1++) {
-                    value = cubeFits[posZ][idxNaxis2][idxNaxis1];
-                    lineValues.put(value.isNaN() ? null : value);
+                	 if(indexHeader==0) {
+                         valueFloat = cubeFitsFloat[posZ][idxNaxis2][idxNaxis1];
+                         lineValues.put(valueFloat);
+
+                	 }else {
+                         value = cubeFits[posZ][idxNaxis2][idxNaxis1];
+                         lineValues.put(value.isNaN() ? null : value);
+                	 }
+                    
                 }
                 tabValues.put(lineValues);
             }

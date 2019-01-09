@@ -147,26 +147,25 @@ public class FitsHeader extends AbstractDataCubeHeader {
     }
 
     private void readFitsHeaders(Fits fits) throws CubeExplorerException {
-        logger.trace("ENTER readFitsHeaders()");
-
+        logger.info("ENTER readFitsHeaders()");
+        boolean isPassed = false;
         try {
             int nberHDUs = fits.getNumberOfHDUs();
 
             // Headers from fits
-            logger.trace("Getting Headers...");
-            logger.trace("Number of HDUs: " + nberHDUs);
+            logger.info("Getting Headers...");
+            logger.info("Number of HDUs: " + nberHDUs);
 
             // Search Hdu image index
             JSONArray hduMetadata;
             String value;
             for (int idxHdu = 0; idxHdu < nberHDUs; idxHdu++) {
-                logger.trace("Hdu : " + idxHdu);
+                logger.info("Hdu : " + idxHdu);
 
                 Header header = fits.getHDU(idxHdu).getHeader();
                 fitsHeaders.add(header);
                 hduMetadata = parseMetadata(header);
                 jsonMetadata.put(hduMetadata);
-
                 // Get references information for hdu
                 // NAXIS n size of axis
                 // CRVAL n coordinate value at reference point
@@ -174,13 +173,22 @@ public class FitsHeader extends AbstractDataCubeHeader {
                 // CDELT n coordinate increment at reference point
                 // CTYPE n axis type (8 characters)
                 // CROTA n rotation from stated coordinate type.
-                if (idxHdu == indexHeader) {
+                String naxis3 = String.valueOf(getValue(hduMetadata, "NAXIS3"));
+                logger.info("idxHdu : "+idxHdu+" - readFitsHeaders - naxis3 : " + naxis3);
+                //if (idxHdu == indexHeader) {
+                if ((!naxis3.equals(null) && !naxis3.equals("null")) && isPassed==false) {
+                	indexHeader = idxHdu;
+                	logger.info("jsonDimensions");
+                	logger.info(jsonDimensions);
+                	isPassed = true;
+                	//if (idxHdu == indexHeader) {
                     String vX, vY, vZ;
                     // Get size of axis
 
                     vX = getValue(hduMetadata, "NAXIS1");
                     vY = getValue(hduMetadata, "NAXIS2");
-                    vZ = getValue(hduMetadata, "NAXIS3");
+                    vZ = getValue(hduMetadata, "NAXIS3"); 
+                    logger.info("vZ : " + vZ);
                     jsonDimensions.put("dimX", (vX == null) ? 0.0 : Float.parseFloat(vX));
                     jsonDimensions.put("dimY", (vY == null) ? 0.0 : Float.parseFloat(vY));
                     jsonDimensions.put("dimZ", (vZ == null) ? 0.0 : Float.parseFloat(vZ));
@@ -228,6 +236,8 @@ public class FitsHeader extends AbstractDataCubeHeader {
                 }
 
             }
+//            logger.info("jsonDimensions");
+//            logger.info(jsonDimensions);
             logger.trace("Header done !");
         }
         catch (FitsException fe) {

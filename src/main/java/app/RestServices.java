@@ -1,5 +1,6 @@
 package app;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -14,6 +15,7 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.imageio.ImageIO;
 import javax.ws.rs.QueryParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +60,14 @@ public class RestServices {
     public String getWorkspace() {
         return workspace;
     }
+    
+    /**
+     * @return the workspace
+     */
+    public void setWorkspace(String dataPath) {
+    	LOGREST.info("Set Workspace : {}", dataPath);
+        this.workspace = dataPath;
+    }
 
     private void initService(String logLevel) throws CubeExplorerException {
         // Log level
@@ -68,6 +78,7 @@ public class RestServices {
 
         // Properties
         workspace = CubeExplorer.getProperty("workspace", ".");
+        LOGREST.info("initService - Set Workspace : {}", workspace);
         Locale lang = new Locale(CubeExplorer.getProperty("lang", Locale.getDefault().toString()));
 
         // loading application messages
@@ -75,20 +86,25 @@ public class RestServices {
     }
 
     @RequestMapping(value = "/listFiles", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> getListFiles(@QueryParam("logLlevel") String logLevel) {
-
-        
+    public ResponseEntity<String> getListFiles(@QueryParam("logLlevel") String logLevel, @QueryParam("pathData") String pathData) {
+       
 
         JSONObject response = new JSONObject();
         JSONArray files;
         HttpStatus status = HttpStatus.OK;
-
+        
+       
         try {
+        	LOGREST.info("Call getListFiles({}, {})",logLevel, pathData);
         	logLevel = (logLevel==null)?"INFO":logLevel;
-            initService(logLevel);         
-            LOGREST.info("Call getListFiles()");
+        	LOGREST.info("getListFiles - logLevel ({})",logLevel);
+        	initService(logLevel);            
+
+        	LOGREST.info("getListFiles - logLevel ({})",logLevel);
             files = getAllFiles();
-            response.put("response", files.toString());
+            LOGREST.info("files ({})",files.length());
+            response.put("public_files", files.get(0));
+            response.put("private_files", files.get(1));
            
         }
         catch (Exception e) {
@@ -96,7 +112,6 @@ public class RestServices {
             String message = e.getMessage();
             response.put("message", message);
             LOGREST.error("getListFiles : {}", message);
-            // response.put("messageHtml", Text2Html.replace(message));
         }
 
         response.put("status", status.name());
@@ -127,7 +142,7 @@ public class RestServices {
     
     @RequestMapping(value = "/header", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getHeader(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
-        @QueryParam("logLevel") String logLevel) {
+        @QueryParam("logLevel") String logLevel,@QueryParam("pathData") String pathData) {
 
         JSONObject response = new JSONObject();
         HttpStatus status = HttpStatus.OK;
@@ -138,12 +153,17 @@ public class RestServices {
         try {
         	logLevel = (logLevel==null)?"INFO":logLevel;
             initService(logLevel);
-            LOGREST.info("Call getHeader({}, {})", entry, metadata);
+            LOGREST.info("Call getHeader({}, {}, {})", entry, metadata, pathData);
 
             if (entry == null) {
                 SimpleException se = new SimpleException("exception.parameterMissing", "entry");
                 LOGREST.info("exception.rest.header.syntax {}", se.getMessage());
                 throw new CubeExplorerException(se, "exception.rest.header.syntax");
+            }
+            System.out.println(pathData);
+            if(pathData!= "undefined" && !pathData.equals("null") && !pathData.isEmpty()) {
+            	LOGREST.info("change data path {}", pathData);
+            	setWorkspace(pathData);
             }
            
             File dir = new File(workspace+"/public/");
@@ -200,16 +220,7 @@ public class RestServices {
         response.put("status", status.name());
         return new ResponseEntity<String>(response.toString(), status);
     }
-
-    // @GET
-    // @Path("/testGet")
-    // public Response getTest() {
-    // return Response
-    // .status(Status.OK)
-    // .entity("Hello")
-    // .build();
-    // }
-    //
+ 
     /**
      * Get a slide from Fits File
      * 
@@ -221,7 +232,7 @@ public class RestServices {
      */
     @RequestMapping(value = "/slide", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getSlide(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
-        @QueryParam("posZ") int posZ, @QueryParam("logLevel") String logLevel) {
+        @QueryParam("posZ") int posZ, @QueryParam("logLevel") String logLevel, @QueryParam("pathData") String pathData) {
 
         JSONObject response = new JSONObject();
         HttpStatus status = HttpStatus.OK;
@@ -241,6 +252,10 @@ public class RestServices {
                 throw new CubeExplorerException(se, "exception.rest.slide.syntax");
             }
 
+            if(!pathData.equals("undefined") && !pathData.equals("null") && !pathData.isEmpty()) {
+            	LOGREST.info("getSlide - change data path {}", pathData);
+            	setWorkspace(pathData);
+            }
             File dir = new File(workspace+"/public/");
             FilenameFilter filter = new FilenameFilter() {
 	            @Override
@@ -279,10 +294,10 @@ public class RestServices {
             LOGREST.error("getSlide : {}", message); 
         }
         catch (Exception e) {
-            status = HttpStatus.INTERNAL_SERVER_ERROR;
+            status = HttpStatus.INTERNAL_SERVER_ERROR;            
             String message = e.getMessage();
-            response.put("message", message);
-            LOGREST.error("getSlide : {}", message); 
+            response.put("message", e.getStackTrace());
+            LOGREST.error("getSlide : {}", e.getMessage()); 
         }
         finally {
             if (fc != null) fc.close();
@@ -305,7 +320,7 @@ public class RestServices {
     @RequestMapping(value = "/spectrum", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getSpectrum(@QueryParam("entry") String entry,
         @QueryParam("metadata") String metadata, @QueryParam("posX") int posX, @QueryParam("posY") int posY,
-        @QueryParam("logLevel") String logLevel) {
+        @QueryParam("logLevel") String logLevel, @QueryParam("pathData") String pathData) {
 
         
         JSONObject response = new JSONObject();
@@ -318,12 +333,16 @@ public class RestServices {
         	logLevel = (logLevel==null)?"INFO":logLevel;
             initService(logLevel);
             // Initialize logger (voir conf/log4j2.xml).
-            LOGREST.info("Call getFitsSpectrum({}, {}, {}, {})", entry, metadata, posX, posY);
+            LOGREST.info("Call getFitsSpectrum({}, {}, {}, {}, {})", entry, metadata, posX, posY, pathData);
 
             if (entry == null) {
                 SimpleException se = new SimpleException("exception.parameterMissing", "entry");
                 LOGREST.error("getSpectrum : {}", se.getMessage()); 
                 throw new CubeExplorerException(se, "exception.rest.spectrum.syntax");
+            }
+            if(pathData!="undefined" && !pathData.equals("null") && !pathData.isEmpty()) {
+            	LOGREST.info("getSpectrum - change data path {}", pathData);
+            	setWorkspace(pathData);
             }
             
             File dir = new File(workspace+"/public/");
@@ -436,6 +455,54 @@ public class RestServices {
 
         return new ResponseEntity<String>(response.toString(), status);
     }
+    
+    public String worldfile(String entry) {
+    	
+        JSONObject response = new JSONObject();
+        
+        //get size width and height of raster
+        try {
+			BufferedImage bimg = ImageIO.read(new File(workspace+"/"+entry));
+			int width          = bimg.getWidth();
+			int height         = bimg.getHeight();
+			int[][] pixels = new int[width][height];
+
+			for( int i = 0; i < width; i++ )
+			    for( int j = 0; j < height; j++ ) {
+			        pixels[i][j] = bimg.getRGB( i, j );
+			        LOGREST.info("i - j - value : {} {] {}",i, j, pixels[i][j]); 
+			    }
+        
+			   //get left top and bottom right of image
+	        
+	        //taille pixel
+	        //ppx = (x2-x1)/rasterx
+	        //ppy = (y2-y1)/rastery
+	        
+	        //coordonnée du centre du pixel
+	        //xcentre = x1 + (ppx * .5)
+	        //ycentre = y1 + (ppy * .5) #puisque ppy est négatif
+	        
+	        response.put("A",  "");
+	        response.put("D",  "");
+	        response.put("B",  "");
+	        response.put("E",  "");
+	        response.put("C",  "");
+	        response.put("F",  "");
+			
+			
+			
+		} catch (IOException e) {
+            String message = e.getMessage();
+            response.put("message", message);
+            LOGREST.error("getSpectrum : {}", message); 
+		}
+            
+    	
+    	return response.toString();
+    	
+    }
+    
 
 
 }

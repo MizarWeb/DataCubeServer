@@ -1,6 +1,7 @@
 *.~ar
 *.zip
 *.log
+*.txt
 .classpath
 .project
 .settings/
