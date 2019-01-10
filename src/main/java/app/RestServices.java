@@ -184,10 +184,8 @@ public class RestServices {
             
             LOGREST.info("Call getCube()");
             adc = ce.getCube();
-            //LOGREST.info(adc.getCubeExplorer());
             
             JSONObject properties = adc.getHeader(metadata);
-            //LOGREST.info(properties);
             properties.put("fileType", adc.getType().toString());
 
             // Format json response
@@ -295,7 +293,6 @@ public class RestServices {
         }
         catch (Exception e) {
             status = HttpStatus.INTERNAL_SERVER_ERROR;            
-            String message = e.getMessage();
             response.put("message", e.getStackTrace());
             LOGREST.error("getSlide : {}", e.getMessage()); 
         }
@@ -455,6 +452,7 @@ public class RestServices {
 
         return new ResponseEntity<String>(response.toString(), status);
     }
+    
     
     public String worldfile(String entry) {
     	
