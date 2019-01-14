@@ -61,13 +61,6 @@ public class RestServices {
         return workspace;
     }
     
-    /**
-     * @return the workspace
-     */
-    public void setWorkspace(String dataPath) {
-    	LOGREST.info("Set Workspace : {}", dataPath);
-        this.workspace = dataPath;
-    }
 
     private void initService(String logLevel) throws CubeExplorerException {
         // Log level
@@ -86,7 +79,7 @@ public class RestServices {
     }
 
     @RequestMapping(value = "/listFiles", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> getListFiles(@QueryParam("logLlevel") String logLevel, @QueryParam("pathData") String pathData) {
+    public ResponseEntity<String> getListFiles(@QueryParam("logLlevel") String logLevel) {
        
 
         JSONObject response = new JSONObject();
@@ -95,7 +88,7 @@ public class RestServices {
         
        
         try {
-        	LOGREST.info("Call getListFiles({}, {})",logLevel, pathData);
+        	LOGREST.info("Call getListFiles({}, {})",logLevel);
         	logLevel = (logLevel==null)?"INFO":logLevel;
         	LOGREST.info("getListFiles - logLevel ({})",logLevel);
         	initService(logLevel);            
@@ -142,7 +135,7 @@ public class RestServices {
     
     @RequestMapping(value = "/header", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getHeader(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
-        @QueryParam("logLevel") String logLevel,@QueryParam("pathData") String pathData) {
+        @QueryParam("logLevel") String logLevel) {
 
         JSONObject response = new JSONObject();
         HttpStatus status = HttpStatus.OK;
@@ -153,18 +146,13 @@ public class RestServices {
         try {
         	logLevel = (logLevel==null)?"INFO":logLevel;
             initService(logLevel);
-            LOGREST.info("Call getHeader({}, {}, {})", entry, metadata, pathData);
+            LOGREST.info("Call getHeader({}, {}, {})", entry, metadata);
 
             if (entry == null) {
                 SimpleException se = new SimpleException("exception.parameterMissing", "entry");
                 LOGREST.info("exception.rest.header.syntax {}", se.getMessage());
                 throw new CubeExplorerException(se, "exception.rest.header.syntax");
-            }
-            System.out.println(pathData);
-            if(pathData!= "undefined" && !pathData.equals("null") && !pathData.isEmpty()) {
-            	LOGREST.info("change data path {}", pathData);
-            	setWorkspace(pathData);
-            }
+            }           
            
             File dir = new File(workspace+"/public/");
              FilenameFilter filter = new FilenameFilter() {
@@ -230,7 +218,7 @@ public class RestServices {
      */
     @RequestMapping(value = "/slide", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getSlide(@QueryParam("entry") String entry, @QueryParam("metadata") String metadata,
-        @QueryParam("posZ") int posZ, @QueryParam("logLevel") String logLevel, @QueryParam("pathData") String pathData) {
+        @QueryParam("posZ") int posZ, @QueryParam("logLevel") String logLevel) {
 
         JSONObject response = new JSONObject();
         HttpStatus status = HttpStatus.OK;
@@ -250,10 +238,7 @@ public class RestServices {
                 throw new CubeExplorerException(se, "exception.rest.slide.syntax");
             }
 
-            if(!pathData.equals("undefined") && !pathData.equals("null") && !pathData.isEmpty()) {
-            	LOGREST.info("getSlide - change data path {}", pathData);
-            	setWorkspace(pathData);
-            }
+           
             File dir = new File(workspace+"/public/");
             FilenameFilter filter = new FilenameFilter() {
 	            @Override
@@ -317,7 +302,7 @@ public class RestServices {
     @RequestMapping(value = "/spectrum", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getSpectrum(@QueryParam("entry") String entry,
         @QueryParam("metadata") String metadata, @QueryParam("posX") int posX, @QueryParam("posY") int posY,
-        @QueryParam("logLevel") String logLevel, @QueryParam("pathData") String pathData) {
+        @QueryParam("logLevel") String logLevel) {
 
         
         JSONObject response = new JSONObject();
@@ -330,18 +315,14 @@ public class RestServices {
         	logLevel = (logLevel==null)?"INFO":logLevel;
             initService(logLevel);
             // Initialize logger (voir conf/log4j2.xml).
-            LOGREST.info("Call getFitsSpectrum({}, {}, {}, {}, {})", entry, metadata, posX, posY, pathData);
+            LOGREST.info("Call getFitsSpectrum({}, {}, {}, {}, {})", entry, metadata, posX, posY);
 
             if (entry == null) {
                 SimpleException se = new SimpleException("exception.parameterMissing", "entry");
                 LOGREST.error("getSpectrum : {}", se.getMessage()); 
                 throw new CubeExplorerException(se, "exception.rest.spectrum.syntax");
             }
-            if(pathData!="undefined" && !pathData.equals("null") && !pathData.isEmpty()) {
-            	LOGREST.info("getSpectrum - change data path {}", pathData);
-            	setWorkspace(pathData);
-            }
-            
+                     
             File dir = new File(workspace+"/public/");
             FilenameFilter filter = new FilenameFilter() {
 	            @Override
