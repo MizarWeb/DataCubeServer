@@ -5,6 +5,7 @@
 git clone https://github.com/MizarWeb/DataCubeServer.git
 cd DataCubeServer
 vim cubeExplorer.properties and set the same <path> (eg : /tmp/tests/) for workspace and workspace_cube
+	also edit the dimX,dimY,and dimZ with the dimention names available in your cubes.
 mkdir <path>/private
 mkdir <path>/public>
 mvn install

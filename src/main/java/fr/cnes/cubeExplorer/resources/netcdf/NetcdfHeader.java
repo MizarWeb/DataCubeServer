@@ -6,6 +6,7 @@
 package fr.cnes.cubeExplorer.resources.netcdf;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.json.JSONArray;
@@ -24,128 +25,138 @@ import ucar.nc2.Variable;
  */
 public class NetcdfHeader extends AbstractDataCubeHeader {
 
-    private NetcdfCube cube = null;
-    private List<Variable> netcdfHeader = new ArrayList<Variable>();
+	private NetcdfCube cube = null;
+	private List<Variable> netcdfHeader = new ArrayList<Variable>();
 
-    /**
-     * construct a header fits JSONArray from netcdf file
-     * 
-     * @param cube Cube of data fits
-     * @throws CubeExplorerException
-     */
-    public NetcdfHeader(CubeExplorer ce, NetcdfCube cube) throws CubeExplorerException {
-        super(ce);
+	/**
+	 * construct a header fits JSONArray from netcdf file
+	 * 
+	 * @param cube
+	 *            Cube of data fits
+	 * @throws CubeExplorerException
+	 */
+	public NetcdfHeader(CubeExplorer ce, NetcdfCube cube) throws CubeExplorerException {
+		super(ce);
 
-        logger.info("NEW NetcdfHeader({})", cube);
+		logger.info("NEW NetcdfHeader({})", cube);
 
-        this.cube = cube;
-        if (this.cube == null || this.cube.getNcfile() == null) {
-        	logger.error("exception.file.null");
-            throw new CubeExplorerException("exception.file.null");
-        }
+		this.cube = cube;
+		if (this.cube == null || this.cube.getNcfile() == null) {
+			logger.error("exception.file.null");
+			throw new CubeExplorerException("exception.file.null");
+		}
 
-        // Read netcdf file
-        readNetcdfHeader(cube.getNcfile());
-    }
+		// Read netcdf file
+		readNetcdfHeader(cube.getNcfile());
+	}
 
-    /**
-     * @return the Header
-     */
-    public List<Variable> getNetcdfHeader() {
-        return netcdfHeader;
-    }
+	/**
+	 * @return the Header
+	 */
+	public List<Variable> getNetcdfHeader() {
+		return netcdfHeader;
+	}
 
-    private JSONArray parseMetadata(List<Variable> variables) {
-        JSONArray result = new JSONArray();
+	private JSONArray parseMetadata(List<Variable> variables) {
+		JSONArray result = new JSONArray();
 
-        logger.info("ENTER retrieveMetadata()");
+		logger.info("ENTER retrieveMetadata()");
 
-        for (Variable variable : variables) {
-            JSONArray jsonCard = new JSONArray();
+		for (Variable variable : variables) {
+			JSONArray jsonCard = new JSONArray();
 
-            // New value
-            String key = variable.getFullName();
-            String value = variable.getDimensions().toString();
-            String comment = "";
+			// New value
+			String key = variable.getFullName();
+			String value = variable.getDimensions().toString();
+			String comment = "";
 
-            // search units attribute
-            for (Attribute attribute : variable.getAttributes()) {
-                if (attribute.getFullName().equals("units")) {
-                    comment = attribute.getStringValue();
-                    break;
-                }
-            }
+			// search units attribute
+			for (Attribute attribute : variable.getAttributes()) {
+				if (attribute.getFullName().equals("units")) {
+					comment = attribute.getStringValue();
+					break;
+				}
+			}
 
-            // Store value
-            jsonCard.put(key);
-            jsonCard.put(value);
-            jsonCard.put(comment);
-            result.put(jsonCard);
-        }
+			// Store value
+			jsonCard.put(key);
+			jsonCard.put(value);
+			jsonCard.put(comment);
+			result.put(jsonCard);
+		}
 
-        return result;
-    }
+		return result;
+	}
 
-    private void readNetcdfHeader(NetcdfFile ncfile) throws CubeExplorerException {
-        logger.info("ENTER readNetcdfHeader()");
-        try {
-            // Get the latitude and longitude Variables.
-            Variable lonVar = ncfile.findVariable("lon");
-            Variable latVar = ncfile.findVariable("lat");
-            Variable levelVar = ncfile.findVariable("level");
+	private void readNetcdfHeader(NetcdfFile ncfile) throws CubeExplorerException {
+		logger.info("ENTER readNetcdfHeader()");
+		try {
+			// Get the latitude and longitude Variables.
+			Variable xVar = findVariable(ncfile, CubeExplorer.getVarX());
+			Variable yVar = findVariable(ncfile, CubeExplorer.getVarY());
+			Variable zVar = findVariable(ncfile, CubeExplorer.getVarZ());
 
-            if (lonVar == null) throw new CubeExplorerException("exception.cube.dimMissing", "lon");
-            if (latVar == null) throw new CubeExplorerException("exception.cube.dimMissing", "lat");
-            if (levelVar == null) throw new CubeExplorerException("exception.cube.dimMissing", "level");
+			jsonMetadata = parseMetadata(ncfile.getVariables());
 
-            jsonMetadata = parseMetadata(ncfile.getVariables());
+			// Get size of axis
+			int xDim = (int) xVar.getSize();
+			int yDim = (int) yVar.getSize();
+			int zDim = (int) zVar.getSize();
 
-            // Get size of axis
-            int lonDim = (int) lonVar.getSize();
-            int latDim = (int) latVar.getSize();
-            int levelDim = (int) levelVar.getSize();
+			jsonDimensions.put("dimX", xDim);
+			jsonDimensions.put("dimY", yDim);
+			jsonDimensions.put("dimZ", zDim);
 
-            jsonDimensions.put("dimX", lonDim);
-            jsonDimensions.put("dimY", latDim);
-            jsonDimensions.put("dimZ", levelDim);
+			// Get axis type (8 characters)
+			jsonDimensions.put("typeX", (xVar.getDescription() == null) ? "" : xVar.getDescription());
+			jsonDimensions.put("typeY", (yVar.getDescription() == null) ? "" : yVar.getDescription());
+			jsonDimensions.put("typeZ", (zVar.getDescription() == null) ? "" : zVar.getDescription());
 
-            // Get axis type (8 characters)
-            jsonDimensions.put("typeX", (lonVar.getDescription() == null) ? "" : lonVar.getDescription());
-            jsonDimensions.put("typeY", (latVar.getDescription() == null) ? "" : latVar.getDescription());
-            jsonDimensions.put("typeZ", (levelVar.getDescription() == null) ? "" : levelVar.getDescription());
+			// Retrieve first and last values from each axis to compute step
+			ArrayFloat.D1 xArray = (ArrayFloat.D1) xVar.read();
+			ArrayFloat.D1 yArray = (ArrayFloat.D1) yVar.read();
+			ArrayFloat.D1 zArray = (ArrayFloat.D1) zVar.read();
 
-            // Retrieve first and last values from each axis to compute step
-            ArrayFloat.D1 lonArray = (ArrayFloat.D1) lonVar.read();
-            ArrayFloat.D1 latArray = (ArrayFloat.D1) latVar.read();
-            ArrayFloat.D1 levelArray = (ArrayFloat.D1) levelVar.read();
+			jsonDimensions.put("refX", 0.0);
+			jsonDimensions.put("refY", 0.0);
+			jsonDimensions.put("refZ", 0.0);
 
-            jsonDimensions.put("refX", 0.0);
-            jsonDimensions.put("refY", 0.0);
-            jsonDimensions.put("refZ", 0.0);
+			// Get array location of the reference point in pixels
+			Float xRef = xArray.get(0);
+			Float yRef = yArray.get(0);
+			Float zRef = zArray.get(0);
 
-            // Get array location of the reference point in pixels
-            Float lonRef = lonArray.get(0);
-            Float latRef = latArray.get(0);
-            Float levelRef = levelArray.get(0);
+			// Get coordinate values at reference point
+			jsonDimensions.put("refLon", xRef);
+			jsonDimensions.put("refLat", yRef);
+			jsonDimensions.put("refLevel", zRef);
 
-            // Get coordinate values at reference point
-            jsonDimensions.put("refLon", lonRef);
-            jsonDimensions.put("refLat", latRef);
-            jsonDimensions.put("refLevel", levelRef);
+			// Step = (lastValue - firstValue) / (length - 1)
+			Float lonStep = ((xArray.get(xDim - 1) - xRef) / (xDim - 1));
+			Float latStep = ((yArray.get(yDim - 1) - yRef) / (yDim - 1));
+			Float levelStep = ((zArray.get(zDim - 1) - zRef) / (zDim - 1));
 
-            // Step = (lastValue - firstValue) / (length - 1)
-            Float lonStep = ((lonArray.get(lonDim - 1) - lonRef) / (lonDim - 1));
-            Float latStep = ((latArray.get(latDim - 1) - latRef) / (latDim - 1));
-            Float levelStep = ((levelArray.get(levelDim - 1) - levelRef) / (levelDim - 1));
+			// Get coordinate increments at reference point
+			jsonDimensions.put("stepX", lonStep);
+			jsonDimensions.put("stepY", latStep);
+			jsonDimensions.put("stepZ", levelStep);
+		} catch (Exception ioe) {
+			logger.error("CubeExplorerException {}", ioe.getMessage());
+			throw new CubeExplorerException(ioe);
+		}
+	}
 
-            // Get coordinate increments at reference point
-            jsonDimensions.put("stepX", lonStep);
-            jsonDimensions.put("stepY", latStep);
-            jsonDimensions.put("stepZ", levelStep);
-        }
-        catch (Exception ioe) {
-        	logger.error("CubeExplorerException {}", ioe.getMessage());
-            throw new CubeExplorerException(ioe);
-        }
-    }
+	private Variable findVariable(NetcdfFile ncfile, String[] varNames) throws CubeExplorerException {
+		Variable var = null;
+		for (String varName : varNames) {
+			var = ncfile.findVariable(varName);
+			if(var != null){
+				break;
+			}
+		}
+		if (var == null) {
+			throw new CubeExplorerException("exception.cube.dimMissing", "one of " + Arrays.toString(varNames));
+		}
+		return var;
+	}
 }
