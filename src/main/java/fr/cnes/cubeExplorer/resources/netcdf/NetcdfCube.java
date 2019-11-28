@@ -92,13 +92,13 @@ public class NetcdfCube extends AbstractDataCube {
 			properties.put("metadata", getHeader().getMetadata(md));
 			
 			//TODO bouchon description
-            JSONObject localisation = new JSONObject();
-            localisation.put("name", "m31");
-            localisation.put("constellation", "andromeda");
+            JSONObject location = new JSONObject();
+            location.put("name", "m31");
+            location.put("constellation", "andromeda");
             JSONObject object_type = new JSONObject();
             object_type.put("class", "star");
             
-            properties.put("localisation", localisation);
+            properties.put("location", location);
             properties.put("object_type", object_type);
 		}
 		return properties;
