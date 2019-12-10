@@ -291,36 +291,7 @@ public class CubeExplorer {
 		}
 	}
 
-	public static String[] getVarX() {
-		String dim = "dimX";
-		String defaultName = "lon";
-		return getdim(dim, defaultName);
-	}
 	
-	public static String[] getVarY() {
-		String dim = "dimY";
-		String defaultName = "lat";
-		return getdim(dim, defaultName);
-	}
-
-	public static String[] getVarZ() {
-		String dim = "dimZ";
-		String defaultName = "level";
-		return getdim(dim, defaultName);
-	}
-	private static String[] getdim(String var, String defaultName) {
-		String[] varNames = {defaultName};
-		try {
-			String varNamesProp = CubeExplorer.getProperty(var, defaultName);
-			varNames = varNamesProp.split("\\|");
-		} catch (CubeExplorerException e) {
-			LOGGER.warn(e.toString());
-			if(LOGGER.isDebugEnabled()){
-				e.printStackTrace();
-			}
-		}
-		return varNames;
-	}
 
 	
 }
