@@ -105,7 +105,7 @@ public class FitsCube extends AbstractDataCube {
             // toutes les metadata
             properties.put("metadata", getHeader().getMetadata(md));
             
-            //TODO bouchon description
+
             JSONObject location = new JSONObject();
             location.put("name", "m31");
             location.put("constellation", "andromeda");
