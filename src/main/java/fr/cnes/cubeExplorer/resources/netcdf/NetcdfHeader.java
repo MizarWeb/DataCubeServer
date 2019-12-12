@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 
 import app.CubeExplorer;
@@ -24,6 +26,9 @@ import ucar.nc2.Variable;
  *
  */
 public class NetcdfHeader extends AbstractDataCubeHeader {
+
+	// Initialise un logger (voir conf/log4j2.xml).
+	private static final Logger LOGGER = LogManager.getLogger("netcdfHeader");
 
 	private NetcdfCube cube = null;
 	private List<Variable> netcdfHeader = new ArrayList<Variable>();
@@ -91,10 +96,17 @@ public class NetcdfHeader extends AbstractDataCubeHeader {
 	private void readNetcdfHeader(NetcdfFile ncfile) throws CubeExplorerException {
 		logger.info("ENTER readNetcdfHeader()");
 		try {
-			// Get the latitude and longitude Variables.
-			Variable xVar = findVariable(ncfile, CubeExplorer.getVarX());
-			Variable yVar = findVariable(ncfile, CubeExplorer.getVarY());
-			Variable zVar = findVariable(ncfile, CubeExplorer.getVarZ());
+			// Get the cube values name and unit
+			Variable cubeVar = this.cube.findCubeVar();
+			String cubeVarUnit = cubeVar.getUnitsString();
+			String cubeVarType = cubeVar.getShortName();
+			 jsonDimensions.put("unitVal", (cubeVarUnit == null) ? " - " : cubeVarUnit);
+             jsonDimensions.put("typeVal",  (cubeVarType == null) ? "Value" : cubeVarType);  
+			
+			// Get the 3D Variables.
+			Variable xVar = findVariable(ncfile, getVarX());
+			Variable yVar = findVariable(ncfile, getVarY());
+			Variable zVar = findVariable(ncfile, getVarZ());
 
 			jsonMetadata = parseMetadata(ncfile.getVariables());
 
@@ -106,11 +118,22 @@ public class NetcdfHeader extends AbstractDataCubeHeader {
 			jsonDimensions.put("dimX", xDim);
 			jsonDimensions.put("dimY", yDim);
 			jsonDimensions.put("dimZ", zDim);
+			
+			// Get axis unit
+			String unitX = xVar.getUnitsString();
+			String unitY = yVar.getUnitsString();
+			String unitZ = zVar.getUnitsString();
+			jsonDimensions.put("unitX", (unitX == null) ? "" : unitX);
+			jsonDimensions.put("unitY", (unitY == null) ? "" : unitY);
+			jsonDimensions.put("unitZ", (unitZ == null) ? "" : unitZ);
 
 			// Get axis type (8 characters)
-			jsonDimensions.put("typeX", (xVar.getDescription() == null) ? "" : xVar.getDescription());
-			jsonDimensions.put("typeY", (yVar.getDescription() == null) ? "" : yVar.getDescription());
-			jsonDimensions.put("typeZ", (zVar.getDescription() == null) ? "" : zVar.getDescription());
+			String typeX = xVar.getShortName();
+			String typeY = yVar.getShortName();
+			String typeZ = zVar.getShortName();
+			jsonDimensions.put("typeX", ( typeX == null) ? "" : typeX);
+			jsonDimensions.put("typeY", ( typeY == null) ? "" : typeY);
+			jsonDimensions.put("typeZ", ( typeZ == null) ? "" : typeZ);
 
 			// Retrieve first and last values from each axis to compute step
 			ArrayFloat.D1 xArray = (ArrayFloat.D1) xVar.read();
@@ -146,7 +169,7 @@ public class NetcdfHeader extends AbstractDataCubeHeader {
 		}
 	}
 
-	private Variable findVariable(NetcdfFile ncfile, String[] varNames) throws CubeExplorerException {
+	public Variable findVariable(NetcdfFile ncfile, String[] varNames) throws CubeExplorerException {
 		Variable var = null;
 		for (String varName : varNames) {
 			var = ncfile.findVariable(varName);
@@ -158,5 +181,36 @@ public class NetcdfHeader extends AbstractDataCubeHeader {
 			throw new CubeExplorerException("exception.cube.dimMissing", "one of " + Arrays.toString(varNames));
 		}
 		return var;
+	}
+	
+	public static String[] getVarX() {
+		String dim = "dimX";
+		String defaultName = "lon";
+		return getdim(dim, defaultName);
+	}
+	
+	public static String[] getVarY() {
+		String dim = "dimY";
+		String defaultName = "lat";
+		return getdim(dim, defaultName);
+	}
+
+	public static String[] getVarZ() {
+		String dim = "dimZ";
+		String defaultName = "level";
+		return getdim(dim, defaultName);
+	}
+	private static String[] getdim(String var, String defaultName) {
+		String[] varNames = {defaultName};
+		try {
+			String varNamesProp = CubeExplorer.getProperty(var, defaultName);
+			varNames = varNamesProp.split("\\|");
+		} catch (CubeExplorerException e) {
+			LOGGER.warn(e.toString());
+			if(LOGGER.isDebugEnabled()){
+				e.printStackTrace();
+			}
+		}
+		return varNames;
 	}
 }

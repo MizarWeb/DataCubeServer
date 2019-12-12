@@ -256,10 +256,22 @@ public class FitsCube extends AbstractDataCube {
             Double value;
             JSONArray waveslength = new JSONArray();
             JSONArray values = new JSONArray();
-            for (int idxNaxis3 = 0; idxNaxis3 < naxis3; idxNaxis3++) {
-                value = cubeFits[idxNaxis3][posY][posX];
-                values.put(value.isNaN() ? null : value);
-                waveslength.put((double) idxNaxis3);
+      
+            String crval3_str = getHeader().getValue(md, "CRVAL3");
+            String cdelt3_str = getHeader().getValue(md, "CDELT3");
+            String crpix3_str = getHeader().getValue(md, "CRPIX3");
+            float crval3 = 0;
+	        float cdelt3 = 1;
+	        float crpix3 = 0;
+            if (crval3_str != null && cdelt3_str != null) {
+                crval3 = Float.parseFloat(crval3_str);
+    	        cdelt3 = Float.parseFloat(cdelt3_str);
+    	        crpix3 = Float.parseFloat(crpix3_str);
+            }
+            for (int i = 0; i < naxis3; i++) {
+            	value = cubeFits[i][posY][posX];
+            	values.put(value.isNaN() ? null : value);
+            	waveslength.put((float)  crval3 + ((i - crpix3) * cdelt3));
             }
             spectrum.put("wavelength", waveslength);
             spectrum.put("value", values);
@@ -280,131 +292,6 @@ public class FitsCube extends AbstractDataCube {
         }
 
         return properties;
-    }
-
-    // A SUPPRIMER
-    private JSONArray readFitsDataSpectro(int indexHdu) throws CubeExplorerException {
-        JSONArray data = new JSONArray();
-
-        try {
-            int nbrHdu = fits.getNumberOfHDUs();
-
-            if (indexHdu < 0 || indexHdu >= nbrHdu) {
-            	logger.error("exception.outOfBound : Hdu {} , nbrHdu {}", indexHdu, nbrHdu);
-                // OutOfBound
-                throw new CubeExplorerException("exception.outOfBound", "Hdu", indexHdu, 0, nbrHdu - 1);
-            }
-
-            int indexImage = getHeader().getIndexImage();
-
-            Header header = fits.getHDU(indexHdu).getHeader();
-
-            logger.info("Getting Wave...");
-            int hhdduu = -1;
-            for (int i = 0; i < nbrHdu; i++) {
-                String a = fits.getHDU(i).getHeader().findKey("CDELT3");
-                if (a != null) {
-                    logger.trace("CDELT3 find in " + i);
-                    hhdduu = i;
-                    break;
-                }
-            }
-            if (hhdduu == -1) {
-                logger.trace("CDELT3 not found in WCS cube");
-            }
-
-            // Wave from fits
-            // if (fits.getHDU(hdu).getHeader().findKey("CDELT3")!=null) {
-            float[] wave;
-            if (hhdduu != -1) {
-                logger.info("data from WCS cube");
-
-                int naxis3 = header.getIntValue("NAXIS3");
-                float crval3 = header.getFloatValue("CRVAL3");
-                float cdelt3 = header.getFloatValue("CDELT3");
-                logger.info(naxis3 + " " + crval3 + " " + cdelt3);
-                wave = new float[naxis3];
-                for (int i = 0; i < naxis3; i++) {
-                    wave[i] = crval3 + (i * cdelt3);
-                }
-            }
-            else {
-                logger.info("No wave data in the cube WCS");
-                if (indexImage != -1) {
-                    logger.info("Using wave array from ImageIndex HDU table");
-                    TableHDU<?> cols = (TableHDU<?>) fits.getHDU(indexImage);
-                    double[] waveD = (double[]) cols.getColumn(0);
-                    wave = new float[waveD.length];
-                    for (int i = 0; i < waveD.length; i++) {
-                        wave[i] = (float) waveD[i];
-                    }
-                }
-                else {
-                	logger.error("exception.fits.WaveNotFound");
-                    throw new CubeExplorerException("exception.fits.WaveNotFound");
-                }
-            }
-            JSONObject jsonSpectrum = new JSONObject();
-            jsonSpectrum.put("WAVE", wave);
-            logger.info(" Wave - Done !");
-
-            logger.info("Getting Cube Data...");
-            // Spectrum from fits
-            for (int m = 1; m <= 2; m++) {
-                jsonSpectrum.put("NAXIS" + m, header.getDoubleValue("NAXIS" + m));
-                jsonSpectrum.put("CRPIX" + m, header.getDoubleValue("CRPIX" + m));
-                jsonSpectrum.put("CRVAL" + m, header.getDoubleValue("CRVAL" + m));
-                jsonSpectrum.put("CDELT" + m, header.getDoubleValue("CDELT" + m));
-                jsonSpectrum.put("CTYPE" + m, header.getStringValue("CTYPE" + m));
-            }
-
-            jsonSpectrum.put("NAXIS3", header.getDoubleValue("NAXIS3"));
-
-            jsonSpectrum.put("INFO_QTTY", header.getStringValue("INFO____"));
-            jsonSpectrum.put("UNIT_QTTY", header.getStringValue("QTTY____"));
-            jsonSpectrum.put("INFO_WAVE", header.getStringValue("CTYPE3"));
-            jsonSpectrum.put("UNIT_WAVE", header.getStringValue("CUNIT3"));
-
-            double[][][] cubeFits = ((double[][][]) fits.getHDU(indexHdu).getData().getData());
-            int naxis1 = cubeFits[0][0].length;
-            int naxis2 = cubeFits[0].length;
-            int naxis3 = cubeFits.length;
-
-            // Reorganizing cube
-            List<List<List<Float>>> cube3DL = new ArrayList<List<List<Float>>>(naxis1);
-            // float cube[][][] = new float[naxis1][naxis2][naxis3];
-            for (int x = 0; x < naxis1; x++) {
-                List<List<Float>> list2 = new ArrayList<List<Float>>(naxis2);
-                for (int y = 0; y < naxis2; y++) {
-                    List<Float> list3 = new ArrayList<Float>(naxis3);
-                    for (int z = 0; z < naxis3; z++) {
-                        // cube[x][y][z] = (float) cubeFits[z][y][x];
-                        if (cubeFits[z][y][x] != Double.NaN) {
-                            list3.add((float) cubeFits[z][y][x]);
-                        }
-                        else {
-                            list3.add(null);
-                        }
-                    }
-                    list2.add(list3);
-                }
-                cube3DL.add(list2);
-            }
-
-            JSONArray cubeJL = new JSONArray(cube3DL.toString());
-            data.put(cubeJL);
-
-            logger.trace("Header done !");
-        }
-        catch (FitsException fe) {
-        	logger.error("FitsException : fe {}", fe.getMessage());
-            throw new CubeExplorerException(fe);
-        }
-        catch (IOException ioe) {
-        	logger.error("IOException : ioe {}", ioe.getMessage());
-            throw new CubeExplorerException(ioe);
-        }
-        return data;
     }
 
     public void close() {
