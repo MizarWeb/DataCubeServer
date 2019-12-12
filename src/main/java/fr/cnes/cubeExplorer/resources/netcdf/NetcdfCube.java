@@ -7,6 +7,8 @@ package fr.cnes.cubeExplorer.resources.netcdf;
 
 import java.io.IOException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -91,15 +93,14 @@ public class NetcdfCube extends AbstractDataCube {
 			// toutes les metadata
 			properties.put("metadata", getHeader().getMetadata(md));
 			
-//			//TODO bouchon description
-//            JSONObject localisation = new JSONObject();
-//            localisation.put("name", "m31");
-//            localisation.put("constellation", "andromeda");
-//            JSONObject object_type = new JSONObject();
-//            object_type.put("class", "star");
-//            
-//            properties.put("localisation", localisation);
-//            properties.put("object_type", object_type);
+      JSONObject location = new JSONObject();
+      location.put("name", "m31");
+      location.put("constellation", "andromeda");
+      JSONObject object_type = new JSONObject();
+      object_type.put("class", "star");
+
+      properties.put("location", location);
+      properties.put("object_type", object_type);
 		}
 		return properties;
 	}
@@ -113,18 +114,7 @@ public class NetcdfCube extends AbstractDataCube {
 
 		try {
 			// Search first variable with 3 dimensions
-			Variable cubeVar = null;
-			for (Variable variable : ncfile.getVariables()) {
-				int[] dims = variable.getShape();
-				if (dims.length == 3) {
-					cubeVar = variable;
-				}
-			}
-
-			if (cubeVar == null) {
-				logger.error("exception.notFound");
-				throw new CubeExplorerException("exception.notFound", "datacube");
-			}
+			Variable cubeVar = findCubeVar();
 
 			int[] cubeShape = cubeVar.getShape();
 
@@ -169,6 +159,27 @@ public class NetcdfCube extends AbstractDataCube {
 		}
 		return properties;
 	}
+	
+	/**
+	 * Searches first variable with 3 dimensions
+	 * @return the first encountered {@link Variable} with a shape of length = 3
+	 * @throws CubeExplorerException if none is found.
+	 */
+	protected Variable findCubeVar() throws CubeExplorerException {
+		Variable cubeVar = null;
+		for (Variable variable : ncfile.getVariables()) {
+			int[] dims = variable.getShape();
+			if (dims.length == 3) {
+				cubeVar = variable;
+			}
+		}
+
+		if (cubeVar == null) {
+			logger.error("exception.notFound");
+			throw new CubeExplorerException("exception.notFound", "datacube");
+		}
+		return cubeVar;
+	}
 
 	public JSONObject getSpectrum(int posX, int posY, String pattern) throws CubeExplorerException {
 		JSONObject properties = new JSONObject();
@@ -178,19 +189,8 @@ public class NetcdfCube extends AbstractDataCube {
 		logger.trace("ENTER getSpectrum({}, {}, {})", posX, posY, pattern);
 
 		try {
-			// Search first variable with 3 dimensions
-			Variable cubeVar = null;
-			for (Variable variable : ncfile.getVariables()) {
-				int[] dims = variable.getShape();
-				if (dims.length == 3) {
-					cubeVar = variable;
-				}
-			}
-
-			if (cubeVar == null) {
-				logger.error("exception.notFound");
-				throw new CubeExplorerException("exception.notFound", "datacube");
-			}
+			
+			Variable cubeVar = findCubeVar();
 			int[] cubeShape = cubeVar.getShape();
 
 			if (posX < 0 || posX >= cubeShape[2]) {
@@ -217,13 +217,11 @@ public class NetcdfCube extends AbstractDataCube {
 			// Copy metadata without comment
 			JSONArray md = getHeader().getMetadata();
 
-			JSONArray wavelength = new JSONArray();
-			for (int idxPosZ = 0; idxPosZ < cubeShape[0]; idxPosZ++) {
-				wavelength.put((double) idxPosZ);
-			}
+			Variable varZ = ((NetcdfHeader) this.header).findVariable(ncfile, NetcdfHeader.getVarZ());
+			ArrayFloat.D1 wavelength = (ArrayFloat.D1) varZ.read();
 			
 			metadata = getHeader().selectMetadata(md, pattern);
-			spectrum.put("wavelength", wavelength);
+			spectrum.put("wavelength", wavelength.getStorage());
 			spectrum.put("value", cubeNetcdf.getStorage());
 			properties.put("metadata", metadata);
 			properties.put("spectrum", spectrum);

@@ -159,6 +159,7 @@ public class FitsHeader extends AbstractDataCubeHeader {
             // Search Hdu image index
             JSONArray hduMetadata;
             String value;
+			String bunit = null;
             for (int idxHdu = 0; idxHdu < nberHDUs; idxHdu++) {
                 logger.info("Hdu : " + idxHdu);
 
@@ -167,12 +168,15 @@ public class FitsHeader extends AbstractDataCubeHeader {
                 hduMetadata = parseMetadata(header);
                 jsonMetadata.put(hduMetadata);
                 // Get references information for hdu
+				// https://fits.gsfc.nasa.gov/fits_standard.html
+				// BUNIT Arrays Values unit
                 // NAXIS n size of axis
                 // CRVAL n coordinate value at reference point
                 // CRPIX n array location of the reference point in pixels
                 // CDELT n coordinate increment at reference point
                 // CTYPE n axis type (8 characters)
                 // CROTA n rotation from stated coordinate type.
+				bunit = (bunit == null) ? getValue(hduMetadata, "BUNIT") : bunit;
                 String naxis3 = String.valueOf(getValue(hduMetadata, "NAXIS3"));
                 logger.info("idxHdu : "+idxHdu+" - readFitsHeaders - naxis3 : " + naxis3);
                 //if (idxHdu == indexHeader) {
@@ -200,6 +204,14 @@ public class FitsHeader extends AbstractDataCubeHeader {
                     jsonDimensions.put("typeX", (vX == null) ? "" : vX);
                     jsonDimensions.put("typeY", (vY == null) ? "" : vY);
                     jsonDimensions.put("typeZ", (vZ == null) ? "" : vZ);
+
+					// Get axis unit (8 characters)
+					vX = getValue(hduMetadata, "CUNIT1");
+					vY = getValue(hduMetadata, "CUNIT2");
+					vZ = getValue(hduMetadata, "CUNIT3");
+					jsonDimensions.put("unitX", (vX == null) ? "" : vX);
+					jsonDimensions.put("unitY", (vY == null) ? "" : vY);
+					jsonDimensions.put("unitZ", (vZ == null) ? "" : vZ);
 
                     // Get array location of the reference point in pixels
                     vX = getValue(hduMetadata, "CRPIX1");
@@ -237,7 +249,8 @@ public class FitsHeader extends AbstractDataCubeHeader {
 
             }
 //            logger.info("jsonDimensions");
-//            logger.info(jsonDimensions);
+			jsonDimensions.put("unitVal", (bunit == null) ? " - " : bunit);
+			jsonDimensions.put("typeVal", "Value"); // no keyword available for that in Fits
             logger.trace("Header done !");
         }
         catch (FitsException fe) {
