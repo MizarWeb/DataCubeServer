@@ -32,3 +32,5 @@ java -Xmx5G -jar <path>/cubeExplorer-1.0.0-SNAPSHOT.jar
  Log file is written in the launch folder.
  
 ## API server documentation
+
+See [DataCube Wiki page](https://github.com/MizarWeb/DataCube/wiki/API-server-documentation).
