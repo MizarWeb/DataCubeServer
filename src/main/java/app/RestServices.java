@@ -394,12 +394,13 @@ public class RestServices {
         	 initService(logLevel);
              LOGREST.info("Call identification()");
 
-        	 workspace = CubeExplorer.getProperty("workspace", ".");    		       	
-        	
-			String usernameKnown = CubeExplorer.getProperty("username", null);
-			String passwordKnown = CubeExplorer.getProperty("password", null);
-			
-			String usernamePublic = CubeExplorer.getProperty("username_public", null);
+             workspace = CubeExplorer.getProperty("workspace", ".");
+             
+             if(!CubeExplorer.getProperty("no_credential_needed", "false").equals("true")){
+                String usernameKnown = CubeExplorer.getProperty("username", null);
+                String passwordKnown = CubeExplorer.getProperty("password", null);
+                
+                String usernamePublic = CubeExplorer.getProperty("username_public", null);
 			String passwordPublic = CubeExplorer.getProperty("password_public", null);
 			
 			if((usernameKnown.equals(user.getUsername()) && passwordKnown.equals(user.getPassword())) 
@@ -408,16 +409,19 @@ public class RestServices {
 				identification = true;
 				response.put("message", identification);
 				if(usernameKnown=="admin") {
-					response.put("role",  CubeExplorer.getProperty("data_roles_admin", null));
-				}else {
-					response.put("role",  CubeExplorer.getProperty("data_roles_public", null));
-				}
-			}
-			else {
-				status = HttpStatus.FORBIDDEN;
-				identification = false;
-				response.put("message", identification);
-			}
+                        response.put("role",  CubeExplorer.getProperty("data_roles_admin", null));
+                    }else {
+                        response.put("role",  CubeExplorer.getProperty("data_roles_public", null));
+                    }
+                }
+                else {
+                    status = HttpStatus.FORBIDDEN;
+                    identification = false;
+                    response.put("message", identification);
+                }
+            }else{
+                response.put("role",  CubeExplorer.getProperty("data_roles_admin", null));
+            }
 		} catch (CubeExplorerException e) {
 			status = HttpStatus.INTERNAL_SERVER_ERROR;
 			ArrayList<String> listMessage = e.getMessages();
