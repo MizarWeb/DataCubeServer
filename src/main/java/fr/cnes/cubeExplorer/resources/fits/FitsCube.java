@@ -159,9 +159,9 @@ public class FitsCube extends AbstractDataCube {
             logger.info("fits.getHDU(indexHeader).getData() {}",fits.getHDU(indexHeader).getData());
             double[][][] cubeFits = null;
             float[][][] cubeFitsFloat = null;
-            if(indexHeader==0) {
+            try {
             	cubeFitsFloat = (float[][][]) fits.getHDU(indexHeader).getData().getData();
-            }else {
+            }catch(Exception e) {
             	 cubeFits = ((double[][][]) fits.getHDU(indexHeader).getData().getData());
             }
            
@@ -174,11 +174,11 @@ public class FitsCube extends AbstractDataCube {
             for (int idxNaxis2 = 0; idxNaxis2 < naxis2; idxNaxis2++) {
                 JSONArray lineValues = new JSONArray();
                 for (int idxNaxis1 = 0; idxNaxis1 < naxis1; idxNaxis1++) {
-                	 if(indexHeader==0) {
+                	 if(cubeFitsFloat != null) {
                          valueFloat = cubeFitsFloat[posZ][idxNaxis2][idxNaxis1];
                          lineValues.put(valueFloat);
 
-                	 }else {
+                	 }else if(cubeFits != null) {
                          value = cubeFits[posZ][idxNaxis2][idxNaxis1];
                          lineValues.put(value.isNaN() ? null : value);
                 	 }
@@ -250,10 +250,15 @@ public class FitsCube extends AbstractDataCube {
 
             // Copie des metadata demandées sans les commentaires
             metadata = getHeader().selectMetadata(md, pattern);
-
-            double[][][] cubeFits = ((double[][][]) fits.getHDU(indexHeader).getData().getData());
-
-            Double value;
+            double[][][] cubeFits = null;
+            float[][][] cubeFitsFloat = null;
+            try {
+            	cubeFitsFloat = (float[][][]) fits.getHDU(indexHeader).getData().getData();
+            }catch(Exception e) {
+            	 cubeFits = ((double[][][]) fits.getHDU(indexHeader).getData().getData());
+            }
+            Double valuedouble;
+            Float valuefloat;
             JSONArray waveslength = new JSONArray();
             JSONArray values = new JSONArray();
       
@@ -269,8 +274,13 @@ public class FitsCube extends AbstractDataCube {
     	        crpix3 = Float.parseFloat(crpix3_str);
             }
             for (int i = 0; i < naxis3; i++) {
-            	value = cubeFits[i][posY][posX];
-            	values.put(value.isNaN() ? null : value);
+            	if(cubeFits != null) {
+                	valuedouble = cubeFits[i][posY][posX];
+                	values.put(valuedouble.isNaN() ? null : valuedouble);
+            	}else if(cubeFitsFloat != null) {
+            		valuefloat = cubeFitsFloat[i][posY][posX];
+                	values.put(valuefloat.isNaN() ? null : valuefloat);
+            	}
             	waveslength.put((float)  crval3 + ((i - crpix3) * cdelt3));
             }
             spectrum.put("wavelength", waveslength);
